@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "313122970618",
+    "project_id": "health-and-wellness-coac-74bee",
+    "storage_bucket": "health-and-wellness-coac-74bee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:313122970618:android:e02a766396252cbbbc2243",
+        "android_client_info": {
+          "package_name": "io.github.philips148.wellnesscoach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTqF49PCchTtWZ3iy16uGdA_qlyGfcjQU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
