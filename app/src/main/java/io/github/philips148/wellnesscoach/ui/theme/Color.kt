@@ -9,3 +9,20 @@ val Pink80 = Color(0xFFEFB8C8)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
+
+// Shared colors matching the account-screen mockups.
+val WellnessNavy = Color(0xFF323E71)
+val WellnessLightBlue = Color(0xFFCBD8FF)
+val WellnessLightGray = Color(0xFFEBEBF0)
+val WellnessWhite = Color(0xFFFFFFFF)
+
+// Errors and destructive actions.
+val WellnessRed = Color(0xFFB3261E)
+
+// Progress indicators.
+val WellnessGreen = Color(0xFF59AF51)
+
+// Text and outlines.
+val WellnessText = Color(0xFF202535)
+val WellnessMutedText = Color(0xFF596176)
+val WellnessBorder = Color(0xFFD8DAE4)
