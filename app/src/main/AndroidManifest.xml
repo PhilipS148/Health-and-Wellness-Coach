@@ -10,7 +10,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.HealthAndWellnessCoach">
+        android:theme="@style/Theme.HealthAndWellnessCoach"
+        android:name="io.github.philips148.wellnesscoach.WellnessCoachApplication"
+        >
         <activity
             android:name=".MainActivity"
             android:exported="true"
