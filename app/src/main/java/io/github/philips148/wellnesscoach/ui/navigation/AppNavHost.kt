@@ -1,5 +1,6 @@
 package io.github.philips148.wellnesscoach.ui.navigation
 
+import io.github.philips148.wellnesscoach.ui.auth.RegistrationScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,12 +58,12 @@ fun AppNavHost(
                 }
 
                 composable(AppRoutes.REGISTER) {
-                    NavigationPreview(
-                        title = "Registration",
-                        onBack = { navController.popBackStack() }
+                    RegistrationScreen(
+                        onRegistrationSuccess = {
+                            navController.popBackStack()
+                        }
                     )
                 }
-
                 composable(AppRoutes.PASSWORD_RESET) {
                     NavigationPreview(
                         title = "Password reset",
