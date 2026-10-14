@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.github.philips148.wellnesscoach.ui.login.LoginScreen
 
 @Composable
 fun AppNavHost(
@@ -37,23 +38,14 @@ fun AppNavHost(
             if (userId == null) {
                 // Screens available while signed out.
                 composable(AppRoutes.LOGIN) {
-                    NavigationPreview(title = "Login") {
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.REGISTER)
-                            }
-                        ) {
-                            Text("Create account")
+                    LoginScreen(
+                        onForgotPasswordClick = {
+                            navController.navigate(AppRoutes.PASSWORD_RESET)
+                        },
+                        onCreateAccountClick = {
+                            navController.navigate(AppRoutes.REGISTER)
                         }
-
-                        TextButton(
-                            onClick = {
-                                navController.navigate(AppRoutes.PASSWORD_RESET)
-                            }
-                        ) {
-                            Text("Forgot password?")
-                        }
-                    }
+                    )
                 }
 
                 composable(AppRoutes.REGISTER) {
