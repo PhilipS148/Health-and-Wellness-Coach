@@ -32,4 +32,8 @@ class AppViewModel(
     fun refreshUserId() {
         _userId.value = authRepository.getCurrentUserId()
     }
+
+    fun signOut() {
+        authRepository.signOut()
+    }
 }

@@ -26,6 +26,7 @@ import io.github.philips148.wellnesscoach.ui.login.LoginViewModelFactory
 fun AppNavHost(
     userId: String?,
     authRepository: AuthRepository,
+    onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Recreate navigation when the account state changes.
@@ -111,6 +112,12 @@ fun AppNavHost(
                         title = "Account settings",
                         onBack = { navController.popBackStack() }
                     ) {
+                        Button(
+                            onClick = onSignOutClick
+                        ) {
+                            Text("Log Out")
+                        }
+
                         Button(
                             onClick = {
                                 navController.navigate(AppRoutes.DELETE_ACCOUNT)
