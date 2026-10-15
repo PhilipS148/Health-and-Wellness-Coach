@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     AppNavHost(
                         userId = userId,
+                        authRepository = appContainer.authRepository,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
