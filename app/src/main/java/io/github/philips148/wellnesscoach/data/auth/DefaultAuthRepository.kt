@@ -1,11 +1,18 @@
 package io.github.philips148.wellnesscoach.data.auth
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+
 class DefaultAuthRepository(
     private val authDataSource: FirebaseAuthDataSource
 ) : AuthRepository {
 
     override fun getCurrentUserId(): String? {
         return authDataSource.getCurrentUserId()
+    }
+
+    override fun observeUserId(): Flow<String?> {
+        return authDataSource.observeUserId()
     }
 
     override suspend fun register(
@@ -24,11 +31,18 @@ class DefaultAuthRepository(
         email: String,
         password: String
     ): Result<String> {
-        return Result.failure(
-            UnsupportedOperationException(
-                "Sign-in is not implemented yet."
+        return try {
+            val userId = authDataSource.signIn(
+                email = email,
+                password = password
             )
-        )
+
+            Result.success(userId)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            Result.failure(exception)
+        }
     }
 
     override fun signOut() {
