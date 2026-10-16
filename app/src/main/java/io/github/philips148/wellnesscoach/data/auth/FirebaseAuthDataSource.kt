@@ -44,4 +44,8 @@ class FirebaseAuthDataSource(
     fun signOut() {
         auth.signOut()
     }
+
+    suspend fun sendPasswordReset(email: String) {
+        auth.sendPasswordResetEmail(email.trim()).await()
+    }
 }
