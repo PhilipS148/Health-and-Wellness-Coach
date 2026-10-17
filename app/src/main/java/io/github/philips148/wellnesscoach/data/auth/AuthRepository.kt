@@ -1,9 +1,14 @@
 package io.github.philips148.wellnesscoach.data.auth
 
+import kotlinx.coroutines.flow.Flow
+
 interface AuthRepository {
 
     // Return the signed-in user's ID, or null when signed out.
     fun getCurrentUserId(): String?
+
+    // Observe the user's ID when the authentication state changes.
+    fun observeUserId(): Flow<String?>
 
     // Create the account and save its initial username.
     // Return the new user's ID when successful.

@@ -13,13 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.github.philips148.wellnesscoach.data.auth.AuthRepository
+import io.github.philips148.wellnesscoach.ui.login.LoginScreen
+import io.github.philips148.wellnesscoach.ui.login.LoginViewModel
+import io.github.philips148.wellnesscoach.ui.login.LoginViewModelFactory
 
 @Composable
 fun AppNavHost(
     userId: String?,
+    authRepository: AuthRepository,
     modifier: Modifier = Modifier
 ) {
     // Recreate navigation when the account state changes.
@@ -38,23 +44,22 @@ fun AppNavHost(
             if (userId == null) {
                 // Screens available while signed out.
                 composable(AppRoutes.LOGIN) {
-                    NavigationPreview(title = "Login") {
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.REGISTER)
-                            }
-                        ) {
-                            Text("Create account")
-                        }
+                    val loginViewModel: LoginViewModel = viewModel(
+                        factory = LoginViewModelFactory(authRepository)
+                    )
 
-                        TextButton(
-                            onClick = {
-                                navController.navigate(AppRoutes.PASSWORD_RESET)
-                            }
-                        ) {
-                            Text("Forgot password?")
+                    LoginScreen(
+                        uiState = loginViewModel.uiState,
+                        onEmailChange = loginViewModel::onEmailChange,
+                        onPasswordChange = loginViewModel::onPasswordChange,
+                        onSignInClick = loginViewModel::signIn,
+                        onForgotPasswordClick = {
+                            navController.navigate(AppRoutes.PASSWORD_RESET)
+                        },
+                        onCreateAccountClick = {
+                            navController.navigate(AppRoutes.REGISTER)
                         }
-                    }
+                    )
                 }
 
                 composable(AppRoutes.REGISTER) {
