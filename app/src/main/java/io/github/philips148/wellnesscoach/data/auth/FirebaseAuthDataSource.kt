@@ -1,5 +1,6 @@
 package io.github.philips148.wellnesscoach.data.auth
 
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -48,4 +49,27 @@ class FirebaseAuthDataSource(
     suspend fun sendPasswordReset(email: String) {
         auth.sendPasswordResetEmail(email.trim()).await()
     }
+
+    suspend fun reauthenticate(password: String) {
+        val user = auth.currentUser
+        if (user == null) {
+            throw IllegalStateException("User is not signed in")
+        }
+        val email = user.email
+        if (email == null) {
+            throw IllegalStateException("No email address")
+        }
+
+        val credential = EmailAuthProvider.getCredential(email, password)
+        user.reauthenticate(credential).await()
+    }
+
+    suspend fun deleteCurrentUser() {
+        val user = auth.currentUser
+        if (user == null) {
+            throw IllegalStateException("User is not signed in")
+        }
+        user.delete().await()
+    }
+
 }

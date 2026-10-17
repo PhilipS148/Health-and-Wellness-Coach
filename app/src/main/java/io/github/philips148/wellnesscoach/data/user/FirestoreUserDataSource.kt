@@ -1,5 +1,6 @@
 package io.github.philips148.wellnesscoach.data.user
 
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
