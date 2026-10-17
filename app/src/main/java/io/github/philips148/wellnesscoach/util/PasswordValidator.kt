@@ -19,8 +19,12 @@ object PasswordValidator {
             return "Password must contain at least one number."
         }
 
-        if (!password.any { !it.isLetterOrDigit() && !it.isWhitespace() }) {
+        if (!password.any { !it.isLetterOrDigit() }) {
             return "Password must contain at least one special character."
+        }
+
+        if (password.any { it.isWhitespace() }) {
+            return "Password cannot contain spaces."
         }
 
         return null
