@@ -52,11 +52,15 @@ class DefaultAuthRepository(
     override suspend fun sendPasswordReset(
         email: String
     ): Result<Unit> {
-        return Result.failure(
-            UnsupportedOperationException(
-                "Password reset is not implemented yet."
-            )
-        )
+        return try {
+            authDataSource.sendPasswordReset(email)
+
+            Result.success(Unit)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            Result.failure(exception)
+        }
     }
 
     override suspend fun deleteAccount(
