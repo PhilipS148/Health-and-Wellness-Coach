@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.philips148.wellnesscoach.data.auth.AuthRepository
 import kotlinx.coroutines.launch
+import io.github.philips148.wellnesscoach.util.AuthErrorMessages
 
 data class PasswordResetUiState(
     val email: String = "",
@@ -73,9 +74,9 @@ class PasswordResetViewModel(
             } else {
                 uiState.copy(
                     isLoading = false,
-                    errorMessage =
-                        "Couldn't request a reset link. " +
-                                "Please check your connection and try again.",
+                    errorMessage = AuthErrorMessages.forPasswordReset(
+                        result.exceptionOrNull()
+                    ),
                     requestSuccessful = false
                 )
             }

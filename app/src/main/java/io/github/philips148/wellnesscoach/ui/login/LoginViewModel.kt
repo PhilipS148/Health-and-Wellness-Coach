@@ -1,5 +1,4 @@
 package io.github.philips148.wellnesscoach.ui.login
-
 import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.philips148.wellnesscoach.data.auth.AuthRepository
 import kotlinx.coroutines.launch
+import io.github.philips148.wellnesscoach.util.AuthErrorMessages
 
 data class LoginUiState(
     val email: String = "",
@@ -83,9 +83,9 @@ class LoginViewModel(
             } else {
                 uiState.copy(
                     isLoading = false,
-                    errorMessage =
-                        "Couldn't sign in. Check your email and password " +
-                                "and your internet connection, then try again."
+                    errorMessage = AuthErrorMessages.forSignIn(
+                        result.exceptionOrNull()
+                    )
                 )
             }
         }
