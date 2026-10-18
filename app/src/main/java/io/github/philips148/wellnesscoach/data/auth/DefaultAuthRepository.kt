@@ -2,9 +2,11 @@ package io.github.philips148.wellnesscoach.data.auth
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import io.github.philips148.wellnesscoach.data.user.FirestoreUserDataSource
 
 class DefaultAuthRepository(
-    private val authDataSource: FirebaseAuthDataSource
+    private val authDataSource: FirebaseAuthDataSource,
+    private val userDataSource: FirestoreUserDataSource
 ) : AuthRepository {
 
     override fun getCurrentUserId(): String? {
@@ -66,10 +68,21 @@ class DefaultAuthRepository(
     override suspend fun deleteAccount(
         currentPassword: String
     ): Result<Unit> {
-        return Result.failure(
-            UnsupportedOperationException(
-                "Account deletion is not implemented yet."
-            )
-        )
+        val uid = authDataSource.getCurrentUserId()
+        if (uid == null) {
+            return Result.failure(IllegalStateException("User is not signed in"))
+        }
+
+        return try {
+            authDataSource.reauthenticate(currentPassword)
+            userDataSource.deleteAllUserData(uid)
+            authDataSource.deleteCurrentUser()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+
     }
 }
