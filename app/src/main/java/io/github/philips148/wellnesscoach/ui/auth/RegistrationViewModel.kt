@@ -1,5 +1,5 @@
 package io.github.philips148.wellnesscoach.ui.auth
-
+import io.github.philips148.wellnesscoach.util.AuthErrorMessages
 import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,7 +80,7 @@ class RegistrationViewModel : ViewModel() {
         }.addOnFailureListener { exception ->
             uiState = uiState.copy(
                 isLoading = false,
-                errorMessage = exception.message ?: "Registration failed."
+                errorMessage = AuthErrorMessages.forRegistration(exception)
             )
         }
     }
