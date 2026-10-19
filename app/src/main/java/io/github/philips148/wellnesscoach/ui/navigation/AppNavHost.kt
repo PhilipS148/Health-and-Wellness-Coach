@@ -29,6 +29,9 @@ import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetScreen
 import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetSentScreen
 import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetViewModel
 import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetViewModelFactory
+import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountScreen
+import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModel
+import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModelFactory
 
 @Composable
 fun AppNavHost(
@@ -177,15 +180,21 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.DELETE_ACCOUNT)
                             }
                         ) {
-                            Text("Preview account deletion screen")
+                            Text("Delete Account")
                         }
                     }
                 }
 
                 composable(AppRoutes.DELETE_ACCOUNT) {
-                    NavigationPreview(
-                        title = "Account deletion",
-                        onBack = { navController.popBackStack() }
+                    val deleteAccountViewModel: DeleteAccountViewModel = viewModel(
+                        factory = DeleteAccountViewModelFactory(authRepository)
+                    )
+
+                    DeleteAccountScreen(
+                        uiState = deleteAccountViewModel.uiState,
+                        onPasswordChange = deleteAccountViewModel::onPasswordChange,
+                        onDeleteClick = deleteAccountViewModel::deleteAccount,
+                        onCancelClick = { navController.popBackStack() }
                     )
                 }
             }
