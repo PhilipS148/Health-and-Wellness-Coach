@@ -10,7 +10,10 @@ data class UserProfile(
     val dailyCalorieGoal: Int = 2000,
     val dailyWaterGoalOz: Int = 64,
     val dailyStepGoal: Int = 5000,
-    val sleepGoalHours: Double = 8.0
+    val sleepGoalHours: Double = 8.0,
+
+    // Categories the user has chosen to track.
+    val selectedCategories: List<String> = TrackingCategories.ALL
 )
 
 data class MealEntry(
@@ -30,14 +33,22 @@ data class WaterEntry(
     val createdAt: Long = 0L
 )
 
+// Information recorded for one exercise set.
+data class WorkoutSet(
+    val repetitions: Int = 0,
+    val weightLbs: Double? = null
+)
+
 data class WorkoutEntry(
     val id: String = "",
     val date: String = "",
     val workoutType: String = "",
     val exerciseName: String = "",
-    val numSets: Int? = null,
-    val repetitions: Int? = null,
-    val weightLbs: Double? = null,
+
+    // List order represents set 1, set 2, and so on.
+    val sets: List<WorkoutSet> = emptyList(),
+
+    // Used for manually recorded walks or runs.
     val distanceMiles: Double? = null,
     val durationMinutes: Int? = null,
     val createdAt: Long = 0L
@@ -50,13 +61,14 @@ data class SleepEntry(
     val createdAt: Long = 0L
 )
 
-// Levels are on a scale of 1-10, defaulted to 5
+// Recorded ratings use a 1–10 scale.
+// Null means the user did not record that category.
 data class CheckInEntry(
     val id: String = "",
     val date: String = "",
-    val stressLevel: Int = 5,
-    val mood: Int = 5,
-    val energyLevel: Int = 5,
+    val stressLevel: Int? = null,
+    val mood: Int? = null,
+    val energyLevel: Int? = null,
     val createdAt: Long = 0L
 )
 
