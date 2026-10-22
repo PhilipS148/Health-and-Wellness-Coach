@@ -19,15 +19,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.TextButton
 
 @Composable
 fun RegistrationScreen(
     onRegistrationSuccess: () -> Unit,
-    viewModel: RegistrationViewModel = viewModel()
+    viewModel: RegistrationViewModel,
+    onBackClick: () -> Unit
 ) {
     val state = viewModel.uiState
+    val inputsEnabled =
+        !state.isLoading && !state.isProfileSavePending
 
+    BackHandler {
+        if (!state.isLoading) {
+            onBackClick()
+        }
+    }
     LaunchedEffect(state.registrationSuccessful) {
         if (state.registrationSuccessful) {
             onRegistrationSuccess()
@@ -59,6 +68,7 @@ fun RegistrationScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email
             ),
+            enabled = inputsEnabled,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -73,6 +83,7 @@ fun RegistrationScreen(
             label = {
                 Text("Username")
             },
+            enabled = inputsEnabled,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -92,6 +103,7 @@ fun RegistrationScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
+            enabled = inputsEnabled,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -112,6 +124,7 @@ fun RegistrationScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
+            enabled = inputsEnabled,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -140,8 +153,21 @@ fun RegistrationScreen(
             if (state.isLoading) {
                 CircularProgressIndicator()
             } else {
-                Text("Create Account")
+                Text(
+                    text = if (state.isProfileSavePending) {
+                        "Retry Profile Save"
+                    } else {
+                        "Create Account"
+                    }
+                )
             }
         }
+        TextButton(
+            onClick = onBackClick,
+            enabled = !state.isLoading
+        ) {
+            Text("Back to Sign In")
+        }
+
     }
 }
