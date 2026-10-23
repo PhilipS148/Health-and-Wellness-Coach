@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
                     AppNavHost(
                         userId = userId,
                         authRepository = appContainer.authRepository,
+                        userRepository = appContainer.userRepository,
                         onSignOutClick = appViewModel::signOut,
                         modifier = Modifier.padding(innerPadding)
                     )
