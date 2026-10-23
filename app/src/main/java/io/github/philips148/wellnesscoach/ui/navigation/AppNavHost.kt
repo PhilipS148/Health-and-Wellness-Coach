@@ -32,6 +32,8 @@ import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetViewMode
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountScreen
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModel
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModelFactory
+import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
+import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
 
 @Composable
 fun AppNavHost(
@@ -40,20 +42,45 @@ fun AppNavHost(
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val registrationViewModel: RegistrationViewModel = viewModel(
+        factory = RegistrationViewModelFactory(authRepository)
+    )
+
+    val registrationState = registrationViewModel.uiState
+
+// Wait for profile storage before opening signed-in screens.
+    val navigationUserId = if (
+        registrationState.isLoading ||
+        registrationState.isProfileSavePending
+    ) {
+        null
+    } else if (userId == authRepository.getCurrentUserId()) {
+        userId
+    } else {
+        null
+    }
+
+// Clear the registration form after successful account creation.
+    LaunchedEffect(userId, registrationState.registrationSuccessful) {
+        if (userId != null && registrationState.registrationSuccessful) {
+            registrationViewModel.resetForm()
+        }
+    }
+
     // Recreate navigation when the account state changes.
-    key(userId) {
+    key(navigationUserId) {
         val navController = rememberNavController()
 
         NavHost(
             navController = navController,
-            startDestination = if (userId == null) {
+            startDestination = if (navigationUserId == null) {
                 AppRoutes.LOGIN
             } else {
                 AppRoutes.DASHBOARD
             },
             modifier = modifier
         ) {
-            if (userId == null) {
+            if (navigationUserId == null) {
                 // Screens available while signed out.
                 composable(AppRoutes.LOGIN) {
                     val loginViewModel: LoginViewModel = viewModel(
@@ -69,6 +96,7 @@ fun AppNavHost(
                             navController.navigate(AppRoutes.PASSWORD_RESET)
                         },
                         onCreateAccountClick = {
+                            registrationViewModel.resetForm()
                             navController.navigate(AppRoutes.REGISTER)
                         }
                     )
@@ -76,8 +104,13 @@ fun AppNavHost(
 
                 composable(AppRoutes.REGISTER) {
                     RegistrationScreen(
-                        onRegistrationSuccess = {
-                            navController.popBackStack()
+                        onRegistrationSuccess = registrationViewModel::resetForm,
+                        viewModel = registrationViewModel,
+                        onBackClick = {
+                            if (!registrationViewModel.uiState.isLoading) {
+                                registrationViewModel.cancelRegistration()
+                                navController.popBackStack()
+                            }
                         }
                     )
                 }

@@ -22,16 +22,24 @@ Registration, login, session persistence, logout, password reset,
 password validation, authentication error handling, and account
 deletion have been implemented and manually checked.
 
-Registration currently creates a Firebase Authentication account
-directly from `RegistrationViewModel`. Saving the username and initial
-Firestore profile remains part of P2. The repository registration
-method is still a placeholder.
+Registration now uses AuthRepository to create the Firebase
+Authentication account and save the initial Firestore profile,
+including the username, default goals, and selected categories.
+The dashboard opens after the profile saves successfully.
 
-Profile creation/editing, goal and category settings, wellness logging,
-automatic steps, and the completed dashboard remain to be implemented.
+If profile saving fails after the account is created, users can
+retry saving the profile using the same account. Choosing
+Back to Sign In signs them out and clears the registration form.
 
-P1 defines shared models and repository interfaces. The interfaces
-establish the functions that later tasks will implement.
+P2 implements profile loading, saving, and validation.
+Profile setup/editing screens, goal and category settings screens,
+wellness logging, automatic steps, and the completed dashboard
+remain to be implemented.
+
+P2 verification passed:
+- Debug build and manual registration/profile-save check.
+- UserRepositoryTest: 1 test passed.
+- RegistrationProfileTest: 2 tests passed.
 
 ## Repository contracts
 
@@ -39,7 +47,8 @@ All repository operations apply to the currently signed-in user.
 Implementations must obtain the UID from Firebase Authentication and
 return a failure when no user is signed in.
 
-- `UserRepository`: P2 implements profile loading and saving.
+- `UserRepository`: Profile loading and saving are implemented.
+  Pass `appContainer.userRepository` to the feature's ViewModel.
   P3 and P4 use it for profile, goal, and category settings.
 - `WellnessRepository`: W1 implements manual-record data access.
   W2–W6 use it for their tracking screens.

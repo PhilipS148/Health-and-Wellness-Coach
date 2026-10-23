@@ -27,6 +27,21 @@ class FirebaseAuthDataSource(
         }
     }
 
+    // Create the authentication account and return its user ID.
+    suspend fun createAccount(
+        email: String,
+        password: String
+    ): String {
+        val result = auth.createUserWithEmailAndPassword(
+            email.trim(),
+            password
+        ).await()
+
+        return result.user?.uid
+            ?: throw IllegalStateException(
+                "Account creation completed without a user."
+            )
+    }
     suspend fun signIn(
         email: String,
         password: String

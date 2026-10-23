@@ -3,11 +3,21 @@ package io.github.philips148.wellnesscoach.data.auth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import io.github.philips148.wellnesscoach.data.user.FirestoreUserDataSource
+import io.github.philips148.wellnesscoach.data.model.UserProfile
+import io.github.philips148.wellnesscoach.util.PasswordValidator
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class DefaultAuthRepository(
     private val authDataSource: FirebaseAuthDataSource,
     private val userDataSource: FirestoreUserDataSource
 ) : AuthRepository {
+
+    // Prevent simultaneous registration requests.
+    private val registrationMutex = Mutex()
+
+    // Keep the initial profile available if saving it needs another attempt.
+    private var pendingRegistrationProfile: UserProfile? = null
 
     override fun getCurrentUserId(): String? {
         return authDataSource.getCurrentUserId()
@@ -22,11 +32,77 @@ class DefaultAuthRepository(
         password: String,
         username: String
     ): Result<String> {
-        return Result.failure(
-            UnsupportedOperationException(
-                "Registration is not implemented yet."
-            )
-        )
+        return registrationMutex.withLock {
+            try {
+                val cleanEmail = email.trim()
+                val cleanUsername = username.trim()
+
+                require(cleanUsername.isNotEmpty()) {
+                    "Username is required."
+                }
+
+                val pendingProfile = pendingRegistrationProfile
+                val profile: UserProfile
+
+                if (pendingProfile == null) {
+                    check(authDataSource.getCurrentUserId() == null) {
+                        "Sign out before creating another account."
+                    }
+
+                    val passwordError = PasswordValidator.validate(password)
+
+                    if (passwordError != null) {
+                        throw IllegalArgumentException(passwordError)
+                    }
+
+                    val uid = authDataSource.createAccount(
+                        email = cleanEmail,
+                        password = password
+                    )
+
+                    profile = UserProfile(
+                        uid = uid,
+                        email = cleanEmail,
+                        displayName = cleanUsername
+                    )
+
+                    pendingRegistrationProfile = profile
+                } else {
+                    // Retry the profile save for the account already created.
+                    check(
+                        authDataSource.getCurrentUserId() == pendingProfile.uid
+                    ) {
+                        "Your sign-in session changed. Please sign in again."
+                    }
+
+                    require(
+                        cleanEmail.equals(
+                            pendingProfile.email,
+                            ignoreCase = true
+                        ) && cleanUsername == pendingProfile.displayName
+                    ) {
+                        "Retry using the original registration details."
+                    }
+
+                    profile = pendingProfile
+                }
+
+                try {
+                    userDataSource.createProfileIfMissing(profile)
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    throw RegistrationProfileException(exception)
+                }
+
+                pendingRegistrationProfile = null
+                Result.success(profile.uid)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                Result.failure(exception)
+            }
+        }
     }
 
     override suspend fun signIn(
@@ -49,6 +125,7 @@ class DefaultAuthRepository(
 
     override fun signOut() {
         authDataSource.signOut()
+        pendingRegistrationProfile = null
     }
 
     override suspend fun sendPasswordReset(
