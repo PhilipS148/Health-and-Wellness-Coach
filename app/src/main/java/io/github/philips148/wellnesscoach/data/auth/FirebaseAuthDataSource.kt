@@ -15,6 +15,10 @@ class FirebaseAuthDataSource(
         return auth.currentUser?.uid
     }
 
+    fun getCurrentUserEmail(): String? {
+        return auth.currentUser?.email
+    }
+
     fun observeUserId(): Flow<String?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             trySend(firebaseAuth.currentUser?.uid)
@@ -42,6 +46,7 @@ class FirebaseAuthDataSource(
                 "Account creation completed without a user."
             )
     }
+
     suspend fun signIn(
         email: String,
         password: String
@@ -70,6 +75,7 @@ class FirebaseAuthDataSource(
         if (user == null) {
             throw IllegalStateException("User is not signed in")
         }
+
         val email = user.email
         if (email == null) {
             throw IllegalStateException("No email address")
@@ -84,7 +90,7 @@ class FirebaseAuthDataSource(
         if (user == null) {
             throw IllegalStateException("User is not signed in")
         }
+
         user.delete().await()
     }
-
 }

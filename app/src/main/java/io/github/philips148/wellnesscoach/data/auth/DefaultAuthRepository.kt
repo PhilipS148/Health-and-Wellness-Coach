@@ -23,6 +23,10 @@ class DefaultAuthRepository(
         return authDataSource.getCurrentUserId()
     }
 
+    override fun getCurrentUserEmail(): String? {
+        return authDataSource.getCurrentUserEmail()
+    }
+
     override fun observeUserId(): Flow<String?> {
         return authDataSource.observeUserId()
     }
