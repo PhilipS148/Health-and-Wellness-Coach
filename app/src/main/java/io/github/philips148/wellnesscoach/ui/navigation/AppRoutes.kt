@@ -8,5 +8,6 @@ object AppRoutes {
     const val PASSWORD_RESET_SENT = "password_reset_sent"
     const val DASHBOARD = "dashboard"
     const val ACCOUNT_SETTINGS = "account_settings"
+    const val PROFILE = "profile"
     const val DELETE_ACCOUNT = "delete_account"
 }

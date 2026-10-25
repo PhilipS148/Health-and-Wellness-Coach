@@ -7,6 +7,9 @@ interface AuthRepository {
     // Return the signed-in user's ID, or null when signed out.
     fun getCurrentUserId(): String?
 
+    // Return the signed-in user's email, or null when unavailable.
+    fun getCurrentUserEmail(): String?
+
     // Observe the user's ID when the authentication state changes.
     fun observeUserId(): Flow<String?>
 

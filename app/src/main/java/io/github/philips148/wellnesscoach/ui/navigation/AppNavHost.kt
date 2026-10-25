@@ -12,7 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.philips148.wellnesscoach.data.auth.AuthRepository
+import io.github.philips148.wellnesscoach.data.user.UserRepository
 import io.github.philips148.wellnesscoach.ui.login.LoginScreen
 import io.github.philips148.wellnesscoach.ui.login.LoginViewModel
 import io.github.philips148.wellnesscoach.ui.login.LoginViewModelFactory
@@ -32,6 +38,9 @@ import io.github.philips148.wellnesscoach.ui.passwordreset.PasswordResetViewMode
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountScreen
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModel
 import io.github.philips148.wellnesscoach.ui.profile.DeleteAccountViewModelFactory
+import io.github.philips148.wellnesscoach.ui.profile.ProfileScreen
+import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModel
+import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
 
@@ -39,6 +48,7 @@ import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
 fun AppNavHost(
     userId: String?,
     authRepository: AuthRepository,
+    userRepository: UserRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -48,10 +58,36 @@ fun AppNavHost(
 
     val registrationState = registrationViewModel.uiState
 
-// Wait for profile storage before opening signed-in screens.
+    var pendingSetupUserId by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    val handleRegistrationSuccess: () -> Unit = {
+        if (registrationViewModel.uiState.registrationSuccessful) {
+            val registeredUserId = authRepository.getCurrentUserId()
+
+            if (registeredUserId != null) {
+                pendingSetupUserId = registeredUserId
+                registrationViewModel.resetForm()
+            }
+        }
+    }
+
+    // Remember setup before clearing the successful registration form.
+    LaunchedEffect(userId, registrationState.registrationSuccessful) {
+        if (registrationState.registrationSuccessful) {
+            handleRegistrationSuccess()
+        }
+    }
+
+    // Wait for profile storage and setup routing before signed-in navigation.
     val navigationUserId = if (
         registrationState.isLoading ||
-        registrationState.isProfileSavePending
+        registrationState.isProfileSavePending ||
+        (
+                registrationState.registrationSuccessful &&
+                        pendingSetupUserId != userId
+                )
     ) {
         null
     } else if (userId == authRepository.getCurrentUserId()) {
@@ -60,24 +96,25 @@ fun AppNavHost(
         null
     }
 
-// Clear the registration form after successful account creation.
-    LaunchedEffect(userId, registrationState.registrationSuccessful) {
-        if (userId != null && registrationState.registrationSuccessful) {
-            registrationViewModel.resetForm()
-        }
-    }
-
     // Recreate navigation when the account state changes.
     key(navigationUserId) {
         val navController = rememberNavController()
 
+        // Keep the initial destination stable while this account is active.
+        val startDestination = remember {
+            when {
+                navigationUserId == null -> AppRoutes.LOGIN
+
+                pendingSetupUserId == navigationUserId ->
+                    "${AppRoutes.PROFILE}?setup=true"
+
+                else -> AppRoutes.DASHBOARD
+            }
+        }
+
         NavHost(
             navController = navController,
-            startDestination = if (navigationUserId == null) {
-                AppRoutes.LOGIN
-            } else {
-                AppRoutes.DASHBOARD
-            },
+            startDestination = startDestination,
             modifier = modifier
         ) {
             if (navigationUserId == null) {
@@ -96,6 +133,7 @@ fun AppNavHost(
                             navController.navigate(AppRoutes.PASSWORD_RESET)
                         },
                         onCreateAccountClick = {
+                            pendingSetupUserId = null
                             registrationViewModel.resetForm()
                             navController.navigate(AppRoutes.REGISTER)
                         }
@@ -104,7 +142,7 @@ fun AppNavHost(
 
                 composable(AppRoutes.REGISTER) {
                     RegistrationScreen(
-                        onRegistrationSuccess = registrationViewModel::resetForm,
+                        onRegistrationSuccess = handleRegistrationSuccess,
                         viewModel = registrationViewModel,
                         onBackClick = {
                             if (!registrationViewModel.uiState.isLoading) {
@@ -203,7 +241,18 @@ fun AppNavHost(
                         onBack = { navController.popBackStack() }
                     ) {
                         Button(
-                            onClick = onSignOutClick
+                            onClick = {
+                                navController.navigate(AppRoutes.PROFILE)
+                            }
+                        ) {
+                            Text("Edit Profile")
+                        }
+
+                        Button(
+                            onClick = {
+                                pendingSetupUserId = null
+                                onSignOutClick()
+                            }
                         ) {
                             Text("Log Out")
                         }
@@ -216,6 +265,54 @@ fun AppNavHost(
                             Text("Delete Account")
                         }
                     }
+                }
+
+                composable(
+                    route = "${AppRoutes.PROFILE}?setup={setup}",
+                    arguments = listOf(
+                        navArgument("setup") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        }
+                    )
+                ) { backStackEntry ->
+                    val isSetupFlow =
+                        backStackEntry.arguments?.getBoolean("setup") ?: false
+
+                    val profileViewModel: ProfileViewModel = viewModel(
+                        factory = ProfileViewModelFactory(
+                            userRepository = userRepository,
+                            authRepository = authRepository,
+                            isSetupFlow = isSetupFlow
+                        )
+                    )
+
+                    val uiState = profileViewModel.uiState
+
+                    LaunchedEffect(uiState.isSetupComplete) {
+                        if (uiState.isSetupComplete) {
+                            pendingSetupUserId = null
+
+                            navController.navigate(AppRoutes.DASHBOARD) {
+                                popUpTo(backStackEntry.destination.id) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+
+                    ProfileScreen(
+                        uiState = uiState,
+                        onUsernameChange = profileViewModel::onUsernameChange,
+                        onHeightChange = profileViewModel::onHeightChange,
+                        onWeightChange = profileViewModel::onWeightChange,
+                        onSaveClick = profileViewModel::saveProfile,
+                        onRetryClick = profileViewModel::loadProfile,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
                 }
 
                 composable(AppRoutes.DELETE_ACCOUNT) {
