@@ -197,3 +197,40 @@ Use the shared theme, models, and repository interfaces.
 
 Coordinate changes to shared data sources, dependency containers,
 and navigation files before merging.
+
+## Hydration tracking (W3 / #40)
+
+Open Dashboard > Hydration while signed in. Choose a viewing date in
+`yyyy-MM-dd` format and tap Refresh / Retry. Add whole-number US fluid
+ounces using a preset or a custom amount. Each entry has an editable date
+and amount, plus a delete confirmation. Moving an entry to another date
+opens that day's records after saving. Refresh the old date to review its
+recalculated total.
+
+Daily totals are calculated from water records, and the progress bar uses
+`UserProfile.dailyWaterGoalOz`. Refresh reloads both the profile goal and
+records from the server. A failed read is shown as an error rather than
+an empty day or an invented goal. A successful write followed by a failed
+refresh is reported separately, so users do not resubmit a saved entry.
+Offline creates may remain pending until connectivity returns; controls
+are disabled while a write is pending.
+
+W1's `WellnessRepository` currently has no implementation in this checkout.
+W3 therefore uses the narrow `WaterRepository` and `FirebaseWaterRepository`
+with the shared `WaterEntry` model and `FirestorePaths.WATER` path. The
+other wellness interfaces remain unchanged. Coordinate replacement or
+adaptation of this hydration repository when integrating W1.
+
+Build and unit checks: `./gradlew :app:assembleDebug :app:testDebugUnitTest`.
+Live Firebase/emulator acceptance checks still required for this change:
+
+- Create two entries, confirm the total and saved-goal progress, and reopen.
+- Edit the amount, then move an entry to another date; review both dates.
+- Cancel a deletion, then confirm deletion and check the total decreases.
+- Reject blank, zero, negative, fractional, overflowing amounts and invalid dates.
+- Check saved-goal changes after Refresh, an empty date, and totals over the goal.
+- Check scrolling with the keyboard, offline read retry, and pending-write recovery.
+- Confirm a different signed-in account cannot see the first account's records.
+
+Firestore security rules must allow the authenticated user to access only
+`users/{uid}/water/{entryId}`. No rules are changed by W3.
