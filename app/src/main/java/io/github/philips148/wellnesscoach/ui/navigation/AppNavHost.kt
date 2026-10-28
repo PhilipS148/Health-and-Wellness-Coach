@@ -43,12 +43,17 @@ import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModel
 import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
+import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingScreen
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModel
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModelFactory
 
 @Composable
 fun AppNavHost(
     userId: String?,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    wellnessRepository: WellnessRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -232,7 +237,41 @@ fun AppNavHost(
                         ) {
                             Text("Account settings")
                         }
+                        Button(
+                            onClick = {
+                                navController.navigate(AppRoutes.MEALS)
+                            }
+                        ) {
+                            Text("Meals")
+                        }
                     }
+                }
+
+                composable(AppRoutes.MEALS) {
+
+                    val mealViewModel: MealTrackingViewModel =
+                        viewModel(
+                            factory = MealTrackingViewModelFactory(
+                                wellnessRepository
+                            )
+                        )
+
+                    val mealState = mealViewModel.uiState.value
+
+                    MealTrackingScreen(
+                        uiState = mealState,
+                        onDateChange = mealViewModel::onDateChange,
+                        onMealNameChange = mealViewModel::onMealNameChange,
+                        onCaloriesChange = mealViewModel::onCaloriesChange,
+                        onLoadDateClick = mealViewModel::loadMeals,
+                        onSaveClick = mealViewModel::saveMeal,
+                        onEditClick = mealViewModel::editMeal,
+                        onDeleteClick = mealViewModel::deleteMeal,
+                        onCancelEditClick = mealViewModel::cancelEdit,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
                 }
 
                 composable(AppRoutes.ACCOUNT_SETTINGS) {
