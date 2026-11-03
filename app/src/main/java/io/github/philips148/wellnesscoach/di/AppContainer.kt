@@ -10,6 +10,9 @@ import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepositor
 import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
 import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
 
+import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
+import io.github.philips148.wellnesscoach.data.hydration.WaterRepository
+
 class AppContainer {
 
     // Create the object that communicates with Firebase Authentication.
@@ -27,6 +30,8 @@ class AppContainer {
         authDataSource = authDataSource,
         userDataSource = userDataSource
     )
+    // W3 hydration records use the signed-in user's water collection.
+    val waterRepository: WaterRepository = FirebaseWaterRepository(authRepository)
 
     val wellnessRepository: WellnessRepository =
         DefaultWellnessRepository(

@@ -48,12 +48,18 @@ import io.github.philips148.wellnesscoach.ui.meals.MealTrackingScreen
 import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModel
 import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModelFactory
 
+import io.github.philips148.wellnesscoach.data.hydration.WaterRepository
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationScreen
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModel
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModelFactory
+
 @Composable
 fun AppNavHost(
     userId: String?,
     authRepository: AuthRepository,
     userRepository: UserRepository,
     wellnessRepository: WellnessRepository,
+    waterRepository: WaterRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -230,6 +236,9 @@ fun AppNavHost(
                 // Screens available when a signed-in user is detected.
                 composable(AppRoutes.DASHBOARD) {
                     NavigationPreview(title = "Dashboard") {
+                        Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
+                            Text("Hydration")
+                        }
                         Button(
                             onClick = {
                                 navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
@@ -271,6 +280,26 @@ fun AppNavHost(
                         onBackClick = {
                             navController.popBackStack()
                         }
+                    )
+                }
+                        
+                composable(AppRoutes.HYDRATION) {
+                    val hydrationViewModel: HydrationViewModel = viewModel(
+                        factory = HydrationViewModelFactory(waterRepository, userRepository)
+                    )
+                    HydrationScreen(
+                        uiState = hydrationViewModel.uiState,
+                        onDateInputChange = hydrationViewModel::onDateInputChange,
+                        onEntryDateChange = hydrationViewModel::onEntryDateChange,
+                        onAmountChange = hydrationViewModel::onAmountChange,
+                        onRefresh = hydrationViewModel::refresh,
+                        onSave = hydrationViewModel::save,
+                        onEdit = hydrationViewModel::edit,
+                        onCancelEdit = hydrationViewModel::cancelEdit,
+                        onDelete = hydrationViewModel::requestDelete,
+                        onDismissDelete = hydrationViewModel::dismissDelete,
+                        onConfirmDelete = hydrationViewModel::confirmDelete,
+                        onBack = { navController.popBackStack() }
                     )
                 }
 
