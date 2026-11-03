@@ -1,5 +1,6 @@
 package io.github.philips148.wellnesscoach.data.wellness
 
+import kotlinx.coroutines.CancellationException
 import io.github.philips148.wellnesscoach.data.auth.FirebaseAuthDataSource
 import io.github.philips148.wellnesscoach.data.model.CheckInEntry
 import io.github.philips148.wellnesscoach.data.model.MealEntry
@@ -219,6 +220,8 @@ class DefaultWellnessRepository(
     ): Result<T> {
         return try {
             Result.success(block())
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             Result.failure(exception)
         }

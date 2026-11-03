@@ -197,3 +197,14 @@ Use the shared theme, models, and repository interfaces.
 
 Coordinate changes to shared data sources, dependency containers,
 and navigation files before merging.
+
+## Workout tracking
+
+Open Dashboard > Workouts to record strength exercises with individual
+sets, repetitions, and optional weights in pounds. Walk and run entries
+use manually entered miles and whole-number minutes.
+
+Users can review history by date range, edit entries, and confirm deletions.
+Records are saved through the shared `WellnessRepository` for the signed-in user.
+
+The debug build and unit tests pass. Live Firebase testing remains pending.
