@@ -7,8 +7,11 @@ object AppRoutes {
     const val PASSWORD_RESET = "password_reset"
     const val PASSWORD_RESET_SENT = "password_reset_sent"
     const val WORKOUTS = "workouts"
+    const val HYDRATION = "hydration"
     const val DASHBOARD = "dashboard"
     const val ACCOUNT_SETTINGS = "account_settings"
     const val PROFILE = "profile"
     const val DELETE_ACCOUNT = "delete_account"
+
+    const val MEALS = "meals"
 }

@@ -43,8 +43,16 @@ import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModel
 import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
-
 import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingScreen
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModel
+import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModelFactory
+
+import io.github.philips148.wellnesscoach.data.hydration.WaterRepository
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationScreen
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModel
+import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModelFactory
+
 import io.github.philips148.wellnesscoach.ui.workouts.WorkoutScreen
 import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModel
 import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModelFactory
@@ -55,6 +63,7 @@ fun AppNavHost(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     wellnessRepository: WellnessRepository,
+    waterRepository: WaterRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -234,6 +243,9 @@ fun AppNavHost(
                         Button(onClick = { navController.navigate(AppRoutes.WORKOUTS) }) {
                             Text("Workouts")
                         }
+                        Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
+                            Text("Hydration")
+                        }
                         Button(
                             onClick = {
                                 navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
@@ -241,7 +253,61 @@ fun AppNavHost(
                         ) {
                             Text("Account settings")
                         }
+                        Button(
+                            onClick = {
+                                navController.navigate(AppRoutes.MEALS)
+                            }
+                        ) {
+                            Text("Meals")
+                        }
                     }
+                }
+
+                composable(AppRoutes.MEALS) {
+
+                    val mealViewModel: MealTrackingViewModel =
+                        viewModel(
+                            factory = MealTrackingViewModelFactory(
+                                wellnessRepository
+                            )
+                        )
+
+                    val mealState = mealViewModel.uiState.value
+
+                    MealTrackingScreen(
+                        uiState = mealState,
+                        onDateChange = mealViewModel::onDateChange,
+                        onMealNameChange = mealViewModel::onMealNameChange,
+                        onCaloriesChange = mealViewModel::onCaloriesChange,
+                        onLoadDateClick = mealViewModel::loadMeals,
+                        onSaveClick = mealViewModel::saveMeal,
+                        onEditClick = mealViewModel::editMeal,
+                        onDeleteClick = mealViewModel::deleteMeal,
+                        onCancelEditClick = mealViewModel::cancelEdit,
+                        onBackClick = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(AppRoutes.HYDRATION) {
+                    val hydrationViewModel: HydrationViewModel = viewModel(
+                        factory = HydrationViewModelFactory(waterRepository, userRepository)
+                    )
+                    HydrationScreen(
+                        uiState = hydrationViewModel.uiState,
+                        onDateInputChange = hydrationViewModel::onDateInputChange,
+                        onEntryDateChange = hydrationViewModel::onEntryDateChange,
+                        onAmountChange = hydrationViewModel::onAmountChange,
+                        onRefresh = hydrationViewModel::refresh,
+                        onSave = hydrationViewModel::save,
+                        onEdit = hydrationViewModel::edit,
+                        onCancelEdit = hydrationViewModel::cancelEdit,
+                        onDelete = hydrationViewModel::requestDelete,
+                        onDismissDelete = hydrationViewModel::dismissDelete,
+                        onConfirmDelete = hydrationViewModel::confirmDelete,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
 
                 composable(AppRoutes.WORKOUTS) {

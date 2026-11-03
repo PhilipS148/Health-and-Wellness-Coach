@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                         authRepository = appContainer.authRepository,
                         userRepository = appContainer.userRepository,
                         wellnessRepository = appContainer.wellnessRepository,
+                        waterRepository = appContainer.waterRepository,
                         onSignOutClick = appViewModel::signOut,
                         modifier = Modifier.padding(innerPadding)
                     )
