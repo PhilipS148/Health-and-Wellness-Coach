@@ -53,6 +53,10 @@ import io.github.philips148.wellnesscoach.ui.hydration.HydrationScreen
 import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModel
 import io.github.philips148.wellnesscoach.ui.hydration.HydrationViewModelFactory
 
+import io.github.philips148.wellnesscoach.ui.workouts.WorkoutScreen
+import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModel
+import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModelFactory
+
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -236,6 +240,9 @@ fun AppNavHost(
                 // Screens available when a signed-in user is detected.
                 composable(AppRoutes.DASHBOARD) {
                     NavigationPreview(title = "Dashboard") {
+                        Button(onClick = { navController.navigate(AppRoutes.WORKOUTS) }) {
+                            Text("Workouts")
+                        }
                         Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
                             Text("Hydration")
                         }
@@ -282,7 +289,7 @@ fun AppNavHost(
                         }
                     )
                 }
-                        
+
                 composable(AppRoutes.HYDRATION) {
                     val hydrationViewModel: HydrationViewModel = viewModel(
                         factory = HydrationViewModelFactory(waterRepository, userRepository)
@@ -299,6 +306,34 @@ fun AppNavHost(
                         onDelete = hydrationViewModel::requestDelete,
                         onDismissDelete = hydrationViewModel::dismissDelete,
                         onConfirmDelete = hydrationViewModel::confirmDelete,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(AppRoutes.WORKOUTS) {
+                    val workoutViewModel: WorkoutViewModel = viewModel(
+                        factory = WorkoutViewModelFactory(wellnessRepository)
+                    )
+                    WorkoutScreen(
+                        uiState = workoutViewModel.uiState,
+                        onDateChange = workoutViewModel::onDateChange,
+                        onTypeChange = workoutViewModel::onTypeChange,
+                        onNameChange = workoutViewModel::onNameChange,
+                        onDistanceChange = workoutViewModel::onDistanceChange,
+                        onDurationChange = workoutViewModel::onDurationChange,
+                        onAddSet = workoutViewModel::addSet,
+                        onRemoveSet = workoutViewModel::removeSet,
+                        onRepsChange = workoutViewModel::onRepsChange,
+                        onWeightChange = workoutViewModel::onWeightChange,
+                        onHistoryStartChange = workoutViewModel::onHistoryStartChange,
+                        onHistoryEndChange = workoutViewModel::onHistoryEndChange,
+                        onRefresh = workoutViewModel::refresh,
+                        onSave = workoutViewModel::save,
+                        onEdit = workoutViewModel::edit,
+                        onCancelEdit = workoutViewModel::cancelEdit,
+                        onDelete = workoutViewModel::requestDelete,
+                        onDismissDelete = workoutViewModel::dismissDelete,
+                        onConfirmDelete = workoutViewModel::confirmDelete,
                         onBack = { navController.popBackStack() }
                     )
                 }

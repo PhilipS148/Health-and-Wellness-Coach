@@ -134,17 +134,14 @@ class FirestoreWellnessDataSource(
 
     // Workouts
 
-    suspend fun createWorkout(
-        uid: String,
-        entry: WorkoutEntry
-    ): String {
-        val document = userCollection(uid, FirestorePaths.WORKOUTS)
-            .document()
-
-        val savedEntry = entry.copy(id = document.id)
-
+    suspend fun createWorkout(uid: String, entry: WorkoutEntry): String {
+        WorkoutValidation.error(entry)?.let { throw IllegalArgumentException(it) }
+        val document = userCollection(uid, FirestorePaths.WORKOUTS).document()
+        val savedEntry = entry.copy(
+            id = document.id,
+            createdAt = System.currentTimeMillis()
+        )
         document.set(savedEntry).await()
-
         return document.id
     }
 
@@ -153,41 +150,47 @@ class FirestoreWellnessDataSource(
         startDate: String,
         endDate: String
     ): List<WorkoutEntry> {
+        WorkoutValidation.rangeError(startDate, endDate)?.let {
+            throw IllegalArgumentException(it)
+        }
         return userCollection(uid, FirestorePaths.WORKOUTS)
             .whereGreaterThanOrEqualTo("date", startDate)
             .whereLessThanOrEqualTo("date", endDate)
             .orderBy("date")
-            .get(Source.SERVER)
-            .await()
-            .documents
-            .mapNotNull { document ->
-                document.toObject(WorkoutEntry::class.java)
-                    ?.copy(id = document.id)
+            .get(Source.SERVER).await().documents.map { document ->
+                document.toObject(WorkoutEntry::class.java)?.copy(id = document.id)
+                    ?: throw IllegalStateException("Couldn't read a workout record.")
+            }.sortedWith(compareByDescending<WorkoutEntry> { it.date }
+                .thenByDescending { it.createdAt }.thenBy { it.id })
+    }
+
+    suspend fun updateWorkout(uid: String, entry: WorkoutEntry) {
+        WorkoutValidation.error(entry)?.let { throw IllegalArgumentException(it) }
+        require(entry.id.isNotBlank() && '/' !in entry.id) { "Invalid workout ID." }
+        val document = userCollection(uid, FirestorePaths.WORKOUTS).document(entry.id)
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(document)
+            check(snapshot.exists()) { "This workout no longer exists. Refresh history." }
+            val existing = snapshot.toObject(WorkoutEntry::class.java)
+                ?: throw IllegalStateException("Couldn't read the saved workout.")
+            transaction.set(document, entry.copy(
+                id = document.id,
+                createdAt = existing.createdAt
+            ))
+            null
+        }.await()
+    }
+
+    suspend fun deleteWorkout(uid: String, id: String) {
+        require(id.isNotBlank() && '/' !in id) { "Invalid workout ID." }
+        val document = userCollection(uid, FirestorePaths.WORKOUTS).document(id)
+        db.runTransaction { transaction ->
+            check(transaction.get(document).exists()) {
+                "This workout no longer exists. Refresh history."
             }
-    }
-
-    suspend fun updateWorkout(
-        uid: String,
-        entry: WorkoutEntry
-    ) {
-        require(entry.id.isNotBlank()) {
-            "Workout ID is required."
-        }
-
-        userCollection(uid, FirestorePaths.WORKOUTS)
-            .document(entry.id)
-            .set(entry)
-            .await()
-    }
-
-    suspend fun deleteWorkout(
-        uid: String,
-        id: String
-    ) {
-        userCollection(uid, FirestorePaths.WORKOUTS)
-            .document(id)
-            .delete()
-            .await()
+            transaction.delete(document)
+            null
+        }.await()
     }
 
 

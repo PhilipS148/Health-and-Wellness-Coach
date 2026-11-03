@@ -234,3 +234,14 @@ Live Firebase/emulator acceptance checks still required for this change:
 
 Firestore security rules must allow the authenticated user to access only
 `users/{uid}/water/{entryId}`. No rules are changed by W3.
+
+## Workout tracking
+
+Open Dashboard > Workouts to record strength exercises with individual
+sets, repetitions, and optional weights in pounds. Walk and run entries
+use manually entered miles and whole-number minutes.
+
+Users can review history by date range, edit entries, and confirm deletions.
+Records are saved through the shared `WellnessRepository` for the signed-in user.
+
+The debug build and unit tests pass. Live Firebase testing remains pending.
