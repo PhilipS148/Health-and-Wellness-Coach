@@ -32,6 +32,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
+import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
+import io.github.philips148.wellnesscoach.data.user.DefaultUserRepository
+import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepository
+import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
 
 @RunWith(AndroidJUnit4::class)
 class RegistrationProfileTest {
@@ -80,6 +84,21 @@ class RegistrationProfileTest {
             userDataSource = userDataSource
         )
 
+        val userRepository = DefaultUserRepository(
+            authDataSource = authDataSource,
+            userDataSource = userDataSource
+        )
+
+        val waterRepository = FirebaseWaterRepository(
+            authRepository = authRepository,
+            db = database
+        )
+
+        val wellnessRepository = DefaultWellnessRepository(
+            authDataSource = authDataSource,
+            wellnessDataSource = FirestoreWellnessDataSource(database)
+        )
+
         val email = "registration-test-$testId@example.com"
         val password = "RegistrationTest123!"
         var createdUserId: String? = null
@@ -95,6 +114,9 @@ class RegistrationProfileTest {
                     AppNavHost(
                         userId = userId,
                         authRepository = authRepository,
+                        userRepository = userRepository,
+                        wellnessRepository = wellnessRepository,
+                        waterRepository = waterRepository,
                         onSignOutClick = authRepository::signOut
                     )
                 }
@@ -185,13 +207,14 @@ class RegistrationProfileTest {
                     hasText("Retry Profile Save") and hasClickAction()
                 ).performClick()
 
+                // Successful registration now opens profile setup.
                 composeRule.waitUntil(timeoutMillis = 60_000) {
-                    composeRule.onAllNodesWithText("Dashboard")
-                        .fetchSemanticsNodes()
+                    composeRule.onAllNodesWithText("Complete your profile")
+                        .fetchSemanticsNodes(atLeastOneRootRequired = false)
                         .isNotEmpty()
                 }
 
-                composeRule.onNodeWithText("Dashboard")
+                composeRule.onNodeWithText("Complete your profile")
                     .assertIsDisplayed()
 
                 // Retry must use the existing Authentication account.
