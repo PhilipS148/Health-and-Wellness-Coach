@@ -245,3 +245,14 @@ Users can review history by date range, edit entries, and confirm deletions.
 Records are saved through the shared `WellnessRepository` for the signed-in user.
 
 The debug build and unit tests pass. Live Firebase testing remains pending.
+
+## Check-in tracking
+
+Open Dashboard > Daily Check-in to record stress, mood, and energy on the
+agreed 1–10 scales. New entries use selected tracking categories; blank
+ratings remain unrecorded. Editing preserves ratings for categories that
+are no longer selected.
+
+Users can review history by date range, edit entries, and confirm deletions.
+Records use the shared `WellnessRepository` for the signed-in user.
+Build and unit tests are checked; live Firebase testing remains pending.

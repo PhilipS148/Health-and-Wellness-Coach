@@ -57,6 +57,10 @@ import io.github.philips148.wellnesscoach.ui.workouts.WorkoutScreen
 import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModel
 import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModelFactory
 
+import io.github.philips148.wellnesscoach.ui.checkins.CheckInScreen
+import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModel
+import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModelFactory
+
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -240,6 +244,9 @@ fun AppNavHost(
                 // Screens available when a signed-in user is detected.
                 composable(AppRoutes.DASHBOARD) {
                     NavigationPreview(title = "Dashboard") {
+                        Button(onClick = { navController.navigate(AppRoutes.CHECK_INS) }) {
+                            Text("Daily Check-in")
+                        }
                         Button(onClick = { navController.navigate(AppRoutes.WORKOUTS) }) {
                             Text("Workouts")
                         }
@@ -334,6 +341,29 @@ fun AppNavHost(
                         onDelete = workoutViewModel::requestDelete,
                         onDismissDelete = workoutViewModel::dismissDelete,
                         onConfirmDelete = workoutViewModel::confirmDelete,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(AppRoutes.CHECK_INS) {
+                    val checkInViewModel: CheckInViewModel = viewModel(
+                        factory = CheckInViewModelFactory(wellnessRepository, userRepository)
+                    )
+                    CheckInScreen(
+                        uiState = checkInViewModel.uiState,
+                        onDateChange = checkInViewModel::onDateChange,
+                        onStressChange = checkInViewModel::onStressChange,
+                        onMoodChange = checkInViewModel::onMoodChange,
+                        onEnergyChange = checkInViewModel::onEnergyChange,
+                        onHistoryStartChange = checkInViewModel::onHistoryStartChange,
+                        onHistoryEndChange = checkInViewModel::onHistoryEndChange,
+                        onRefresh = checkInViewModel::refresh,
+                        onSave = checkInViewModel::save,
+                        onEdit = checkInViewModel::edit,
+                        onCancelEdit = checkInViewModel::cancelEdit,
+                        onDelete = checkInViewModel::requestDelete,
+                        onDismissDelete = checkInViewModel::dismissDelete,
+                        onConfirmDelete = checkInViewModel::confirmDelete,
                         onBack = { navController.popBackStack() }
                     )
                 }
