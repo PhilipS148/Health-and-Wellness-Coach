@@ -6,6 +6,7 @@ object AppRoutes {
     const val REGISTER = "register"
     const val PASSWORD_RESET = "password_reset"
     const val PASSWORD_RESET_SENT = "password_reset_sent"
+    const val CHECK_INS = "check_ins"
     const val WORKOUTS = "workouts"
     const val HYDRATION = "hydration"
     const val DASHBOARD = "dashboard"

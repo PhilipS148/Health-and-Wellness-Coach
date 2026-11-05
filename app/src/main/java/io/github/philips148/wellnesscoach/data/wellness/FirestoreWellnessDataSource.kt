@@ -255,60 +255,51 @@ class FirestoreWellnessDataSource(
 
     // Daily wellness check-ins
 
-    suspend fun createCheckIn(
-        uid: String,
-        entry: CheckInEntry
-    ): String {
-        val document = userCollection(uid, FirestorePaths.CHECK_INS)
-            .document()
-
-        val savedEntry = entry.copy(id = document.id)
-
-        document.set(savedEntry).await()
-
+    suspend fun createCheckIn(uid: String, entry: CheckInEntry): String {
+        CheckInValidation.error(entry)?.let { throw IllegalArgumentException(it) }
+        val document = userCollection(uid, FirestorePaths.CHECK_INS).document()
+        document.set(entry.copy(
+            id = document.id,
+            createdAt = System.currentTimeMillis()
+        )).await()
         return document.id
     }
 
-    suspend fun getCheckIns(
-        uid: String,
-        startDate: String,
-        endDate: String
-    ): List<CheckInEntry> {
+    suspend fun getCheckIns(uid: String, startDate: String, endDate: String): List<CheckInEntry> {
+        CheckInValidation.rangeError(startDate, endDate)?.let { throw IllegalArgumentException(it) }
         return userCollection(uid, FirestorePaths.CHECK_INS)
             .whereGreaterThanOrEqualTo("date", startDate)
             .whereLessThanOrEqualTo("date", endDate)
             .orderBy("date")
-            .get(Source.SERVER)
-            .await()
-            .documents
-            .mapNotNull { document ->
-                document.toObject(CheckInEntry::class.java)
-                    ?.copy(id = document.id)
-            }
+            .get(Source.SERVER).await().documents.map { document ->
+                document.toObject(CheckInEntry::class.java)?.copy(id = document.id)
+                    ?: throw IllegalStateException("Couldn't read a check-in record.")
+            }.sortedWith(compareByDescending<CheckInEntry> { it.date }
+                .thenByDescending { it.createdAt }.thenBy { it.id })
     }
 
-    suspend fun updateCheckIn(
-        uid: String,
-        entry: CheckInEntry
-    ) {
-        require(entry.id.isNotBlank()) {
-            "Check-in ID is required."
-        }
-
-        userCollection(uid, FirestorePaths.CHECK_INS)
-            .document(entry.id)
-            .set(entry)
-            .await()
+    suspend fun updateCheckIn(uid: String, entry: CheckInEntry) {
+        CheckInValidation.error(entry)?.let { throw IllegalArgumentException(it) }
+        require(entry.id.isNotBlank() && '/' !in entry.id) { "Invalid check-in ID." }
+        val document = userCollection(uid, FirestorePaths.CHECK_INS).document(entry.id)
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(document)
+            check(snapshot.exists()) { "This check-in no longer exists. Refresh history." }
+            val previous = snapshot.toObject(CheckInEntry::class.java)
+                ?: throw IllegalStateException("Couldn't read the check-in.")
+            transaction.set(document, entry.copy(id = document.id, createdAt = previous.createdAt))
+            null
+        }.await()
     }
 
-    suspend fun deleteCheckIn(
-        uid: String,
-        id: String
-    ) {
-        userCollection(uid, FirestorePaths.CHECK_INS)
-            .document(id)
-            .delete()
-            .await()
+    suspend fun deleteCheckIn(uid: String, id: String) {
+        require(id.isNotBlank() && '/' !in id) { "Invalid check-in ID." }
+        val document = userCollection(uid, FirestorePaths.CHECK_INS).document(id)
+        db.runTransaction { transaction ->
+            check(transaction.get(document).exists()) { "This check-in no longer exists. Refresh history." }
+            transaction.delete(document)
+            null
+        }.await()
     }
 
 
