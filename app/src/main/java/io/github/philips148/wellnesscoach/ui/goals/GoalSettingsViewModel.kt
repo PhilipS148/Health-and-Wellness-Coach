@@ -71,8 +71,8 @@ class GoalSettingsViewModel(
                 sleepGoal = profile.sleepGoalHours.toString(),
                 selectedCategories = profile.selectedCategories.toSet()
             )
-        }   // closes launch
-    }       // closes loadProfile  ← this was missing
+        }
+    }
 
     fun onCalorieGoalChange(value: String) {
         uiState = uiState.copy(calorieGoal = value, errorMessage = null, saveSuccessful = false)

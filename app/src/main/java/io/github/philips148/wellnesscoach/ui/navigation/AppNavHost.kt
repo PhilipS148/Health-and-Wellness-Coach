@@ -76,14 +76,13 @@ fun AppNavHost(
         }
     }
 
-    // Remember setup before clearing the successful registration form.
     LaunchedEffect(userId, registrationState.registrationSuccessful) {
         if (registrationState.registrationSuccessful) {
             handleRegistrationSuccess()
         }
     }
 
-    // Wait for profile storage and setup routing before signed-in navigation.
+
     val navigationUserId = if (
         registrationState.isLoading ||
         registrationState.isProfileSavePending ||
@@ -99,7 +98,7 @@ fun AppNavHost(
         null
     }
 
-    // Recreate navigation when the account state changes.
+
     key(navigationUserId) {
         val navController = rememberNavController()
 
@@ -368,7 +367,6 @@ fun AppNavHost(
     }
 }
 
-// Temporary layout shared by the navigation previews.
 @Composable
 private fun NavigationPreview(
     title: String,
