@@ -26,8 +26,10 @@ data class GoalSettingsUiState(
 )
 
 class GoalSettingsViewModel(
-    private val userRepository: UserRepository): ViewModel() {
-    var uiState by mutableStateOf(value= GoalSettingsUiState())
+    private val userRepository: UserRepository
+) : ViewModel() {
+
+    var uiState by mutableStateOf(GoalSettingsUiState())
         private set
 
     private var loadedProfile: UserProfile? = null
@@ -42,7 +44,6 @@ class GoalSettingsViewModel(
             loadError = null
         )
 
-
         viewModelScope.launch {
             val result = userRepository.getProfile()
             if (result.isFailure) {
@@ -52,6 +53,7 @@ class GoalSettingsViewModel(
                 )
                 return@launch
             }
+
             val profile = result.getOrNull()
             if (profile == null) {
                 uiState = uiState.copy(
@@ -60,6 +62,7 @@ class GoalSettingsViewModel(
                 )
                 return@launch
             }
+
             loadedProfile = profile
             uiState = uiState.copy(
                 isLoading = false,
@@ -69,113 +72,81 @@ class GoalSettingsViewModel(
                 sleepGoal = profile.sleepGoalHours.toString(),
                 selectedCategories = profile.selectedCategories.toSet()
             )
+        }
+    }
 
+    fun onCalorieGoalChange(value: String) {
+        uiState = uiState.copy(calorieGoal = value, errorMessage = null, saveSuccessful = false)
+    }
+
+    fun onWaterGoalChange(value: String) {
+        uiState = uiState.copy(waterGoal = value, errorMessage = null, saveSuccessful = false)
+    }
+
+    fun onStepGoalChange(value: String) {
+        uiState = uiState.copy(stepGoal = value, errorMessage = null, saveSuccessful = false)
+    }
+
+    fun onSleepGoalChange(value: String) {
+        uiState = uiState.copy(sleepGoal = value, errorMessage = null, saveSuccessful = false)
+    }
+
+    fun onCategoryToggle(categoryId: String) {
+        val current = uiState.selectedCategories
+        val updated = if (categoryId in current) current - categoryId else current + categoryId
+
+        uiState = uiState.copy(
+            selectedCategories = updated,
+            errorMessage = null,
+            saveSuccessful = false
+        )
+    }
+
+    fun save() {
+        if (uiState.isLoading || uiState.isSaving) {
+            return
+        }
+        val profile = loadedProfile ?: return
+
+        val validationError =
+            GoalsValidator.wholeNumberGoalError(uiState.calorieGoal, "Daily calorie goal")
+                ?: GoalsValidator.wholeNumberGoalError(uiState.waterGoal, "Daily water goal")
+                ?: GoalsValidator.wholeNumberGoalError(uiState.stepGoal, "Daily step goal")
+                ?: GoalsValidator.sleepGoalError(uiState.sleepGoal)
+
+        if (validationError != null) {
+            uiState = uiState.copy(errorMessage = validationError)
+            return
         }
 
-        fun onCalorieGoalChange(value: String) {
-            uiState = uiState.copy(
-                calorieGoal = value,
-                errorMessage = null,
-                saveSuccessful = false
-            )
-        }
-        fun onWaterGoalChange(value: String) {
-            uiState = uiState.copy(
-                waterGoal = value,
-                errorMessage = null,
-                saveSuccessful = false
-            )
-        }
-        fun onStepGoalChange(value: String) {
-            uiState = uiState.copy(
-                stepGoal = value,
-                errorMessage = null,
-                saveSuccessful = false
-            )
-        }
-        fun onSleepGoalChange(value: String) {
-            uiState = uiState.copy(
-                sleepGoal = value,
-                errorMessage = null,
-                saveSuccessful = false
-            )
-        }
+        val updatedProfile = profile.copy(
+            dailyCalorieGoal = uiState.calorieGoal.trim().toInt(),
+            dailyWaterGoalOz = uiState.waterGoal.trim().toInt(),
+            dailyStepGoal = uiState.stepGoal.trim().toInt(),
+            sleepGoalHours = uiState.sleepGoal.trim().toDouble(),
+            selectedCategories = TrackingCategories.ALL.filter { it in uiState.selectedCategories }
+        )
 
-        fun onCategoryToggle(categoryId: String) {
-            val updated = mutableSetOf<String>()
-            var wasSelected = false
+        uiState = uiState.copy(
+            isSaving = true,
+            errorMessage = null,
+            saveSuccessful = false
+        )
 
-            for (selected in uiState.selectedCategories) {
-                if (selected == categoryId) {
-                    wasSelected = true
+        viewModelScope.launch {
+            val result = userRepository.saveProfile(updatedProfile)
+            if (result.isFailure) {
+                val message = if (result.exceptionOrNull() is FirebaseNetworkException) {
+                    "No internet connection."
                 } else {
-                    updated.add(selected)
+                    "Couldn't save your goals. Please try again."
                 }
+                uiState = uiState.copy(isSaving = false, errorMessage = message)
+                return@launch
             }
 
-            if(!wasSelected) {
-                updated.add(categoryId)
-            }
-
-            uiState = uiState.copy(
-                selectedCategories = updated,
-                errorMessage = null,
-                saveSuccessful = false
-            )
+            loadedProfile = updatedProfile
+            uiState = uiState.copy(isSaving = false, saveSuccessful = true)
         }
-
-        fun save() {
-            if (uiState.isLoading || uiState.isSaving) {
-                return
-            }
-            var profile = loadedProfile ?: return
-
-            val validationError =
-                GoalsValidator.wholeNumberGoalError(uiState.calorieGoal, "Daily calorie goal")
-                    ?: GoalsValidator.wholeNumberGoalError(uiState.waterGoal, "Daily water goal")
-                    ?: GoalsValidator.wholeNumberGoalError(uiState.stepGoal, "Daily step goal")
-                    ?: GoalsValidator.sleepGoalError(uiState.sleepGoal)
-
-            if (validationError != null) {
-                uiState = uiState.copy(errorMessage = validationError)
-                return
-            }
-
-            val updatedProfile = profile.copy(
-                dailyCalorieGoal = uiState.calorieGoal.trim().toInt(),
-                sleepGoalHours = uiState.sleepGoal.trim().toDouble(),
-                selectedCategories = TrackingCategories.ALL.filter{it in uiState.selectedCategories}
-            )
-
-            uiState = uiState.copy(
-                isSaving = true,
-                errorMessage = null,
-                saveSuccessful =  false
-            )
-
-            viewModelScope.launch {
-                val result = userRepository.saveProfile(updatedProfile)
-                if (result.isFailure) {
-                    val message = if (result.exceptionOrNull() is FirebaseNetworkException) {
-                        "No internet connection."
-                    } else {
-                        "Couldn't save your goals. Please try again."
-                    }
-                    uiState = uiState.copy(
-                        isSaving = false,
-                        errorMessage = message
-                    )
-                    return@launch
-
-                }
-                loadedProfile = updatedProfile
-                uiState = uiState.copy(
-                    isSaving = false,
-                    saveSuccessful = true
-                )
-            }
-        }
-
-
     }
 }
