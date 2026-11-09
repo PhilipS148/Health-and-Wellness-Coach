@@ -256,6 +256,9 @@ fun AppNavHost(
                         Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
                             Text("Hydration")
                         }
+                        Button(onClick = { navController.navigate(AppRoutes.SLEEP) }) {
+                            Text("Sleep")
+                        }
                         Button(
                             onClick = {
                                 navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
