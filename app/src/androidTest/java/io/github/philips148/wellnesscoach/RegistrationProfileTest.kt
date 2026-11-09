@@ -37,6 +37,10 @@ import io.github.philips148.wellnesscoach.data.user.DefaultUserRepository
 import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepository
 import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
 
+import io.github.philips148.wellnesscoach.data.steps.DefaultStepRepository
+import io.github.philips148.wellnesscoach.data.steps.FirestoreStepDataSource
+import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
+
 @RunWith(AndroidJUnit4::class)
 class RegistrationProfileTest {
 
@@ -99,6 +103,16 @@ class RegistrationProfileTest {
             wellnessDataSource = FirestoreWellnessDataSource(database)
         )
 
+        // Keep step storage connected to this test's Firebase clients.
+        val stepRepository = DefaultStepRepository(
+            authDataSource = authDataSource,
+            stepDataSource = FirestoreStepDataSource(database)
+        )
+
+        // Construct the phone reader; this registration test does not
+        // navigate to Steps or start a recording subscription.
+        val phoneStepDataSource = PhoneStepDataSource(context)
+
         val email = "registration-test-$testId@example.com"
         val password = "RegistrationTest123!"
         var createdUserId: String? = null
@@ -117,6 +131,8 @@ class RegistrationProfileTest {
                         userRepository = userRepository,
                         wellnessRepository = wellnessRepository,
                         waterRepository = waterRepository,
+                        stepRepository = stepRepository,
+                        phoneStepDataSource = phoneStepDataSource,
                         onSignOutClick = authRepository::signOut
                     )
                 }

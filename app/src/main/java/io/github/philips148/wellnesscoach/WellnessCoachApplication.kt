@@ -11,7 +11,8 @@ class WellnessCoachApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Create the shared objects when the application starts.
-        appContainer = AppContainer()
+        // Create shared objects and provide the application's context.
+        // This avoids keeping a reference to an individual screen.
+        appContainer = AppContainer(context = this)
     }
 }

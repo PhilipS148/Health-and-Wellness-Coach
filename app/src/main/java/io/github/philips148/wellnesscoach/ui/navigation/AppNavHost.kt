@@ -61,6 +61,9 @@ import io.github.philips148.wellnesscoach.ui.checkins.CheckInScreen
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModel
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModelFactory
 
+import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
+import io.github.philips148.wellnesscoach.data.steps.StepRepository
+import io.github.philips148.wellnesscoach.ui.steps.StepRoute
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -68,6 +71,8 @@ fun AppNavHost(
     userRepository: UserRepository,
     wellnessRepository: WellnessRepository,
     waterRepository: WaterRepository,
+    stepRepository: StepRepository,
+    phoneStepDataSource: PhoneStepDataSource,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -267,6 +272,14 @@ fun AppNavHost(
                         ) {
                             Text("Meals")
                         }
+                        // Open the phone-based Steps screen.
+                        Button(
+                            onClick = {
+                                navController.navigate(AppRoutes.STEPS)
+                            }
+                        ) {
+                            Text("Phone-based steps")
+                        }
                     }
                 }
 
@@ -365,6 +378,17 @@ fun AppNavHost(
                         onDismissDelete = checkInViewModel::dismissDelete,
                         onConfirmDelete = checkInViewModel::confirmDelete,
                         onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // Register Steps as its own screen.
+                composable(AppRoutes.STEPS) {
+                    StepRoute(
+                        authRepository = authRepository,
+                        userRepository = userRepository,
+                        stepRepository = stepRepository,
+                        phoneStepDataSource = phoneStepDataSource,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
 
