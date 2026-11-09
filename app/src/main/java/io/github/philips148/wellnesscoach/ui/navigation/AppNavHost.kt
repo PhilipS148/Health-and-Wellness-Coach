@@ -43,6 +43,7 @@ import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModel
 import io.github.philips148.wellnesscoach.ui.profile.ProfileViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModelFactory
+
 import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
 import io.github.philips148.wellnesscoach.ui.meals.MealTrackingScreen
 import io.github.philips148.wellnesscoach.ui.meals.MealTrackingViewModel
@@ -60,6 +61,11 @@ import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModelFactory
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInScreen
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModel
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModelFactory
+
+import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsScreen
+import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsViewModel
+import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsViewModelFactory
+
 
 @Composable
 fun AppNavHost(
@@ -383,6 +389,14 @@ fun AppNavHost(
 
                         Button(
                             onClick = {
+                                navController.navigate(AppRoutes.GOAL_SETTINGS)
+                            }
+                        ) {
+                            Text("Goals & Tracking")
+                        }
+
+                        Button(
+                            onClick = {
                                 pendingSetupUserId = null
                                 onSignOutClick()
                             }
@@ -458,6 +472,31 @@ fun AppNavHost(
                         onPasswordChange = deleteAccountViewModel::onPasswordChange,
                         onDeleteClick = deleteAccountViewModel::deleteAccount,
                         onCancelClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(AppRoutes.GOAL_SETTINGS) {
+                    val goalSettingsViewModel: GoalSettingsViewModel = viewModel(
+                        factory = GoalSettingsViewModelFactory(userRepository)
+                    )
+                    val uiState = goalSettingsViewModel.uiState
+
+                    LaunchedEffect(uiState.saveSuccessful) {
+                        if (uiState.saveSuccessful) {
+                            navController.popBackStack()
+                        }
+                    }
+
+                    GoalSettingsScreen(
+                        uiState = goalSettingsViewModel.uiState,
+                        onCalorieGoalChange = goalSettingsViewModel::onCalorieGoalChange,
+                        onWaterGoalChange = goalSettingsViewModel::onWaterGoalChange,
+                        onStepGoalChange = goalSettingsViewModel::onStepGoalChange,
+                        onSleepGoalChange = goalSettingsViewModel::onSleepGoalChange,
+                        onCategoryToggle = goalSettingsViewModel::onCategoryToggle,
+                        onSaveClick = goalSettingsViewModel::save,
+                        onRetryClick = goalSettingsViewModel::loadProfile,
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
             }

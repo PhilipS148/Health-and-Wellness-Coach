@@ -12,7 +12,8 @@ object AppRoutes {
     const val DASHBOARD = "dashboard"
     const val ACCOUNT_SETTINGS = "account_settings"
     const val PROFILE = "profile"
+    const val GOAL_SETTINGS = "goal_settings"
     const val DELETE_ACCOUNT = "delete_account"
-
     const val MEALS = "meals"
+
 }
