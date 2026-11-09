@@ -21,7 +21,9 @@ data class SleepUiState(
     val editingEntry: SleepEntry? = null,
     val formError: String? = null,
     val isSaving: Boolean = false
-)
+) {
+    val busy: Boolean get() = isLoading || isSaving
+}
 
 class SleepViewModel(
     private val wellnessRepository: WellnessRepository
@@ -61,6 +63,8 @@ class SleepViewModel(
                 )
             }
         }
+    }
+
 
         fun onDateChange(text: String) {
             uiState = uiState.copy(
@@ -174,4 +178,3 @@ class SleepViewModel(
 
 
     }
-}

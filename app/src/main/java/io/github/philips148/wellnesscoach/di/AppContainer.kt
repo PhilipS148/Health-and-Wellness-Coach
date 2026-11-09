@@ -26,16 +26,15 @@ class AppContainer {
         userDataSource = userDataSource
     )
     // Shared repository for profile information, goals, and categories.
-    val userRepository: UserRepository = DefaultUserRepository(
+    val userRepository = DefaultUserRepository(
         authDataSource = authDataSource,
         userDataSource = userDataSource
     )
     // W3 hydration records use the signed-in user's water collection.
-    val waterRepository: WaterRepository = FirebaseWaterRepository(authRepository)
+    val waterRepository = FirebaseWaterRepository(authRepository)
 
-    val wellnessRepository: WellnessRepository =
-        DefaultWellnessRepository(
-            authDataSource = authDataSource,
-            wellnessDataSource = wellnessDataSource
-        )
+    val wellnessRepository = DefaultWellnessRepository (
+        authDataSource = authDataSource,
+        wellnessDataSource = FirestoreWellnessDataSource()
+    )
 }
