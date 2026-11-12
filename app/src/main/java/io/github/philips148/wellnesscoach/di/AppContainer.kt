@@ -33,14 +33,14 @@ class AppContainer(context: Context) {
         userDataSource = userDataSource
     )
     // Shared repository for profile information, goals, and categories.
-    val userRepository: UserRepository = DefaultUserRepository(
+    val userRepository = DefaultUserRepository(
         authDataSource = authDataSource,
         userDataSource = userDataSource
     )
     // W3 hydration records use the signed-in user's water collection.
-    val waterRepository: WaterRepository = FirebaseWaterRepository(authRepository)
+    val waterRepository = FirebaseWaterRepository(authRepository)
 
-    val wellnessRepository: WellnessRepository =
+    val wellnessRepository =
         DefaultWellnessRepository(
             authDataSource = authDataSource,
             wellnessDataSource = wellnessDataSource
@@ -59,5 +59,4 @@ class AppContainer(context: Context) {
     // Shared reader for steps recorded on this phone.
     // The application supplies the Android context it needs.
     val phoneStepDataSource = PhoneStepDataSource(context)
-
 }
