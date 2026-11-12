@@ -17,5 +17,6 @@ object AppRoutes {
     const val GOAL_SETTINGS = "goal_settings"
     const val DELETE_ACCOUNT = "delete_account"
     const val MEALS = "meals"
-
+    // Phone-based step tracking screen.
+    const val STEPS = "steps"
 }

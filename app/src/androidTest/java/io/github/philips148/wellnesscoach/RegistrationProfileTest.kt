@@ -19,12 +19,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import io.github.philips148.wellnesscoach.data.auth.DefaultAuthRepository
 import io.github.philips148.wellnesscoach.data.auth.FirebaseAuthDataSource
-import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
-import io.github.philips148.wellnesscoach.data.user.DefaultUserRepository
 import io.github.philips148.wellnesscoach.data.user.FirestorePaths
 import io.github.philips148.wellnesscoach.data.user.FirestoreUserDataSource
-import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepository
-import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.navigation.AppNavHost
 import io.github.philips148.wellnesscoach.ui.theme.HealthAndWellnessCoachTheme
@@ -36,6 +32,14 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.UUID
+import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
+import io.github.philips148.wellnesscoach.data.user.DefaultUserRepository
+import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepository
+import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
+
+import io.github.philips148.wellnesscoach.data.steps.DefaultStepRepository
+import io.github.philips148.wellnesscoach.data.steps.FirestoreStepDataSource
+import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
 
 @RunWith(AndroidJUnit4::class)
 class RegistrationProfileTest {
@@ -84,24 +88,38 @@ class RegistrationProfileTest {
             userDataSource = userDataSource
         )
 
+        val userRepository = DefaultUserRepository(
+            authDataSource = authDataSource,
+            userDataSource = userDataSource
+        )
+
+        val waterRepository = FirebaseWaterRepository(
+            authRepository = authRepository,
+            db = database
+        )
+
+        val wellnessRepository = DefaultWellnessRepository(
+            authDataSource = authDataSource,
+            wellnessDataSource = FirestoreWellnessDataSource(database)
+        )
+
+        // Keep step storage connected to this test's Firebase clients.
+        val stepRepository = DefaultStepRepository(
+            authDataSource = authDataSource,
+            stepDataSource = FirestoreStepDataSource(database)
+        )
+
+        // Construct the phone reader; this registration test does not
+        // navigate to Steps or start a recording subscription.
+        val phoneStepDataSource = PhoneStepDataSource(context)
+
         val email = "registration-test-$testId@example.com"
         val password = "RegistrationTest123!"
         var createdUserId: String? = null
 
         try {
+
             val userIdFlow = authRepository.observeUserId()
-
-            val userRepository = DefaultUserRepository(
-                authDataSource = authDataSource,
-                userDataSource = userDataSource
-            )
-
-            val wellnessRepository = DefaultWellnessRepository(
-                authDataSource = authDataSource,
-                wellnessDataSource = FirestoreWellnessDataSource()
-            )
-
-            val waterRepository = FirebaseWaterRepository(authRepository)
 
             composeRule.setContent {
                 val userId by userIdFlow.collectAsState(initial = null)
@@ -113,6 +131,8 @@ class RegistrationProfileTest {
                         userRepository = userRepository,
                         wellnessRepository = wellnessRepository,
                         waterRepository = waterRepository,
+                        stepRepository = stepRepository,
+                        phoneStepDataSource = phoneStepDataSource,
                         onSignOutClick = authRepository::signOut
                     )
                 }
@@ -203,13 +223,14 @@ class RegistrationProfileTest {
                     hasText("Retry Profile Save") and hasClickAction()
                 ).performClick()
 
+                // Successful registration now opens profile setup.
                 composeRule.waitUntil(timeoutMillis = 60_000) {
-                    composeRule.onAllNodesWithText("Dashboard")
-                        .fetchSemanticsNodes()
+                    composeRule.onAllNodesWithText("Complete your profile")
+                        .fetchSemanticsNodes(atLeastOneRootRequired = false)
                         .isNotEmpty()
                 }
 
-                composeRule.onNodeWithText("Dashboard")
+                composeRule.onNodeWithText("Complete your profile")
                     .assertIsDisplayed()
 
                 // Retry must use the existing Authentication account.

@@ -13,7 +13,14 @@ import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
 import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
 import io.github.philips148.wellnesscoach.data.hydration.WaterRepository
 
-class AppContainer {
+import io.github.philips148.wellnesscoach.data.steps.DefaultStepRepository
+import io.github.philips148.wellnesscoach.data.steps.FirestoreStepDataSource
+import io.github.philips148.wellnesscoach.data.steps.StepRepository
+
+import android.content.Context
+import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
+
+class AppContainer(context: Context) {
 
     // Create the object that communicates with Firebase Authentication.
     private val authDataSource = FirebaseAuthDataSource()
@@ -33,8 +40,23 @@ class AppContainer {
     // W3 hydration records use the signed-in user's water collection.
     val waterRepository = FirebaseWaterRepository(authRepository)
 
-    val wellnessRepository = DefaultWellnessRepository (
+    val wellnessRepository =
+        DefaultWellnessRepository(
+            authDataSource = authDataSource,
+            wellnessDataSource = wellnessDataSource
+        )
+
+    // Communicates with Firestore to save and load daily step totals.
+    private val stepDataSource = FirestoreStepDataSource()
+
+    // Shared step repository for ViewModels.
+    // Uses the existing authentication source to identify the account.
+    val stepRepository: StepRepository = DefaultStepRepository(
         authDataSource = authDataSource,
-        wellnessDataSource = FirestoreWellnessDataSource()
+        stepDataSource = stepDataSource
     )
+
+    // Shared reader for steps recorded on this phone.
+    // The application supplies the Android context it needs.
+    val phoneStepDataSource = PhoneStepDataSource(context)
 }
