@@ -61,6 +61,9 @@ import io.github.philips148.wellnesscoach.ui.workouts.WorkoutViewModelFactory
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInScreen
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModel
 import io.github.philips148.wellnesscoach.ui.checkins.CheckInViewModelFactory
+import io.github.philips148.wellnesscoach.ui.sleep.SleepScreen
+import io.github.philips148.wellnesscoach.ui.sleep.SleepViewModel
+import io.github.philips148.wellnesscoach.ui.sleep.SleepViewModelFactory
 
 import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsScreen
 import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsViewModel
@@ -259,6 +262,9 @@ fun AppNavHost(
                         Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
                             Text("Hydration")
                         }
+                        Button(onClick = { navController.navigate(AppRoutes.SLEEP) }) {
+                            Text("Sleep")
+                        }
                         Button(
                             onClick = {
                                 navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
@@ -320,6 +326,25 @@ fun AppNavHost(
                         onDismissDelete = hydrationViewModel::dismissDelete,
                         onConfirmDelete = hydrationViewModel::confirmDelete,
                         onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(AppRoutes.SLEEP) {
+                    val sleepViewModel: SleepViewModel = viewModel(
+                        factory = SleepViewModelFactory(wellnessRepository)
+                    )
+
+                    SleepScreen(
+                        uiState = sleepViewModel.uiState,
+                        onBack = { navController.popBackStack() },
+                        onDateChange = sleepViewModel::onDateChange,
+                        onHoursChange = sleepViewModel::onHoursChange,
+                        onMinutesChange = sleepViewModel::onMinutesChange,
+                        onSave = sleepViewModel::save,
+                        onCancelEdit = sleepViewModel::cancelEditing,
+                        onEdit = sleepViewModel::startEditing,
+                        onDelete = sleepViewModel::delete,
+                        onRetry = sleepViewModel::loadEntries
                     )
                 }
 

@@ -9,6 +9,8 @@ object AppRoutes {
     const val CHECK_INS = "check_ins"
     const val WORKOUTS = "workouts"
     const val HYDRATION = "hydration"
+
+    const val SLEEP = "sleep"
     const val DASHBOARD = "dashboard"
     const val ACCOUNT_SETTINGS = "account_settings"
     const val PROFILE = "profile"

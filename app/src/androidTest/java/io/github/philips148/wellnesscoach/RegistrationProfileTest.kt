@@ -19,8 +19,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import io.github.philips148.wellnesscoach.data.auth.DefaultAuthRepository
 import io.github.philips148.wellnesscoach.data.auth.FirebaseAuthDataSource
+import io.github.philips148.wellnesscoach.data.hydration.FirebaseWaterRepository
+import io.github.philips148.wellnesscoach.data.user.DefaultUserRepository
 import io.github.philips148.wellnesscoach.data.user.FirestorePaths
 import io.github.philips148.wellnesscoach.data.user.FirestoreUserDataSource
+import io.github.philips148.wellnesscoach.data.wellness.DefaultWellnessRepository
+import io.github.philips148.wellnesscoach.data.wellness.FirestoreWellnessDataSource
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationViewModel
 import io.github.philips148.wellnesscoach.ui.navigation.AppNavHost
 import io.github.philips148.wellnesscoach.ui.theme.HealthAndWellnessCoachTheme
@@ -85,8 +89,19 @@ class RegistrationProfileTest {
         var createdUserId: String? = null
 
         try {
-
             val userIdFlow = authRepository.observeUserId()
+
+            val userRepository = DefaultUserRepository(
+                authDataSource = authDataSource,
+                userDataSource = userDataSource
+            )
+
+            val wellnessRepository = DefaultWellnessRepository(
+                authDataSource = authDataSource,
+                wellnessDataSource = FirestoreWellnessDataSource()
+            )
+
+            val waterRepository = FirebaseWaterRepository(authRepository)
 
             composeRule.setContent {
                 val userId by userIdFlow.collectAsState(initial = null)
@@ -95,6 +110,9 @@ class RegistrationProfileTest {
                     AppNavHost(
                         userId = userId,
                         authRepository = authRepository,
+                        userRepository = userRepository,
+                        wellnessRepository = wellnessRepository,
+                        waterRepository = waterRepository,
                         onSignOutClick = authRepository::signOut
                     )
                 }
