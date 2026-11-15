@@ -11,11 +11,13 @@ import io.github.philips148.wellnesscoach.data.steps.StepRepository
 import io.github.philips148.wellnesscoach.data.user.UserRepository
 import io.github.philips148.wellnesscoach.data.wellness.WellnessRepository
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 
 class DefaultSummaryRepository(
     private val userRepository: UserRepository,
     private val wellnessRepository: WellnessRepository,
-    private val stepRepository: StepRepository
+    private val stepRepository: StepRepository,
+    private val getCurrentUserId: () -> String?
 ) : SummaryRepository {
 
     override suspend fun getDailySummary(
@@ -24,31 +26,35 @@ class DefaultSummaryRepository(
         return try {
             LocalDate.parse(date)
 
-            val profile = requireProfile()
+            val userId = requireUserId()
+
+            val profile = requireProfile(userId)
 
             val meals = wellnessRepository
                 .getMeals(date, date)
-                .getOrThrow()
+                .getForUser(userId)
 
             val water = wellnessRepository
                 .getWaterEntries(date, date)
-                .getOrThrow()
+                .getForUser(userId)
 
             val workouts = wellnessRepository
                 .getWorkouts(date, date)
-                .getOrThrow()
+                .getForUser(userId)
 
             val sleep = wellnessRepository
                 .getSleepEntries(date, date)
-                .getOrThrow()
+                .getForUser(userId)
 
             val checkIns = wellnessRepository
                 .getCheckIns(date, date)
-                .getOrThrow()
+                .getForUser(userId)
 
             val stepTotals = stepRepository
                 .getStepTotals(date, date)
-                .getOrThrow()
+                .getForUser(userId)
+
+            checkUserId(userId)
 
             Result.success(
                 buildDailySummary(
@@ -62,6 +68,9 @@ class DefaultSummaryRepository(
                     stepTotals = stepTotals
                 )
             )
+        } catch (exception: CancellationException) {
+            // Pass cancellation back to the caller so the request can stop.
+            throw exception
         } catch (exception: Exception) {
             Result.failure(exception)
         }
@@ -76,31 +85,33 @@ class DefaultSummaryRepository(
 
             val endDate = end.toString()
 
-            val profile = requireProfile()
+            val userId = requireUserId()
+
+            val profile = requireProfile(userId)
 
             val meals = wellnessRepository
                 .getMeals(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val water = wellnessRepository
                 .getWaterEntries(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val workouts = wellnessRepository
                 .getWorkouts(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val sleep = wellnessRepository
                 .getSleepEntries(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val checkIns = wellnessRepository
                 .getCheckIns(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val stepTotals = stepRepository
                 .getStepTotals(startDate, endDate)
-                .getOrThrow()
+                .getForUser(userId)
 
             val dailySummaries = (0L..6L).map { offset ->
                 val date = start.plusDays(offset).toString()
@@ -116,6 +127,8 @@ class DefaultSummaryRepository(
                     stepTotals = stepTotals.filter { it.date == date }
                 )
             }
+
+            checkUserId(userId)
 
             Result.success(
                 WeeklySummary(
@@ -175,18 +188,49 @@ class DefaultSummaryRepository(
                 )
             )
 
+        } catch (exception: CancellationException) {
+            // Pass cancellation back to the caller so the request can stop.
+            throw exception
         } catch (exception: Exception) {
             Result.failure(exception)
         }
     }
 
-    private suspend fun requireProfile(): UserProfile {
-        return userRepository
+    // Capture the account this summary request belongs to.
+    private fun requireUserId(): String {
+        return getCurrentUserId()
+            ?: throw IllegalStateException(
+                "A signed-in user is required."
+            )
+    }
+
+    // An account change makes the in-progress summary invalid.
+    private fun checkUserId(userId: String) {
+        check(getCurrentUserId() == userId) {
+            "The signed-in account changed. Reload the summary."
+        }
+    }
+
+    // Check the account after each completed repository read.
+    private fun <T> Result<T>.getForUser(userId: String): T {
+        val value = getOrThrow()
+        checkUserId(userId)
+        return value
+    }
+
+    private suspend fun requireProfile(userId: String): UserProfile {
+        val profile = userRepository
             .getProfile()
-            .getOrThrow()
+            .getForUser(userId)
             ?: throw IllegalStateException(
                 "No profile exists for the signed-in user."
             )
+
+        check(profile.uid == userId) {
+            "The profile does not belong to the signed-in user."
+        }
+
+        return profile
     }
 
     private fun buildDailySummary(

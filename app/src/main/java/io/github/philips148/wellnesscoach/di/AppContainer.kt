@@ -62,7 +62,9 @@ class AppContainer(context: Context) {
     val summaryRepository: SummaryRepository = DefaultSummaryRepository(
         userRepository = userRepository,
         wellnessRepository = wellnessRepository,
-        stepRepository = stepRepository
+        stepRepository = stepRepository,
+        // Let summaries check which account is currently signed in.
+        getCurrentUserId = authDataSource::getCurrentUserId
     )
 
     // Shared reader for steps recorded on this phone.

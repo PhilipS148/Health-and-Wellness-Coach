@@ -14,6 +14,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import kotlinx.coroutines.CancellationException
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 
 class DefaultSummaryRepositoryTest {
 
@@ -30,6 +33,220 @@ class DefaultSummaryRepositoryTest {
             "Sleep"
         )
     )
+
+    @Test
+    fun dailySummary_rethrowsCancellation() {
+        // Simulate a profile request receiving a cancellation signal.
+        val cancellingUserRepository = object : UserRepository {
+            override suspend fun getProfile(): Result<UserProfile?> {
+                throw CancellationException("Test cancellation")
+            }
+
+            // Required by the interface; this test does not save a profile.
+            override suspend fun saveProfile(
+                profile: UserProfile
+            ): Result<Unit> {
+                return Result.success(Unit)
+            }
+        }
+
+        val repository = DefaultSummaryRepository(
+            userRepository = cancellingUserRepository,
+            wellnessRepository = FakeWellnessRepository(),
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { profile.uid }
+        )
+
+        // Cancellation should reach the caller instead of becoming Result.failure.
+        assertThrows(CancellationException::class.java) {
+            runBlocking {
+                repository.getDailySummary("2026-11-14")
+            }
+        }
+    }
+
+    @Test
+    fun weeklySummary_rethrowsCancellation() {
+        // Simulate a profile request receiving a cancellation signal.
+        val cancellingUserRepository = object : UserRepository {
+            override suspend fun getProfile(): Result<UserProfile?> {
+                throw CancellationException("Test cancellation")
+            }
+
+            // Required by the interface; this test does not save a profile.
+            override suspend fun saveProfile(
+                profile: UserProfile
+            ): Result<Unit> {
+                return Result.success(Unit)
+            }
+        }
+
+        val repository = DefaultSummaryRepository(
+            userRepository = cancellingUserRepository,
+            wellnessRepository = FakeWellnessRepository(),
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { profile.uid }
+        )
+
+        // Weekly requests must also pass cancellation back to the caller.
+        assertThrows(CancellationException::class.java) {
+            runBlocking {
+                repository.getWeeklySummary("2026-11-14")
+            }
+        }
+    }
+
+    @Test
+    fun dailySummary_rejectsAccountChange() = runBlocking {
+        // Two fake accounts with different water goals.
+        val firstProfile = profile
+        val secondProfile = profile.copy(
+            uid = "other-user",
+            dailyWaterGoalOz = 100
+        )
+        var activeUserId = firstProfile.uid
+
+        // Reuse the existing fake, but load the active account's profile.
+        val userRepository =
+            object : UserRepository by FakeUserRepository(firstProfile) {
+                override suspend fun getProfile(): Result<UserProfile?> {
+                    return Result.success(
+                        if (activeUserId == firstProfile.uid) {
+                            firstProfile
+                        } else {
+                            secondProfile
+                        }
+                    )
+                }
+            }
+
+        // Simulate an account switch between record requests.
+        val wellnessRepository =
+            object : WellnessRepository by FakeWellnessRepository() {
+                override suspend fun getMeals(
+                    startDate: String,
+                    endDate: String
+                ): Result<List<MealEntry>> {
+                    activeUserId = secondProfile.uid
+                    return Result.success(emptyList())
+                }
+
+                override suspend fun getWaterEntries(
+                    startDate: String,
+                    endDate: String
+                ): Result<List<WaterEntry>> {
+                    val amount = if (activeUserId == secondProfile.uid) {
+                        24
+                    } else {
+                        8
+                    }
+
+                    return Result.success(
+                        listOf(
+                            WaterEntry(
+                                id = "water-$activeUserId",
+                                date = startDate,
+                                amountOz = amount
+                            )
+                        )
+                    )
+                }
+            }
+
+        val repository = DefaultSummaryRepository(
+            userRepository = userRepository,
+            wellnessRepository = wellnessRepository,
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { activeUserId }
+        )
+
+        val result = repository.getDailySummary("2026-11-14")
+        val summary = result.getOrNull()
+
+        // A request that spans an account switch should be rejected.
+        assertTrue(
+            "Expected failure after account switch; " +
+                    "returned goal=${summary?.waterGoalOz}, " +
+                    "water=${summary?.waterOz}",
+            result.isFailure
+        )
+    }
+
+    @Test
+    fun weeklySummary_rejectsAccountChange() = runBlocking {
+        // Two fake accounts with different water goals.
+        val firstProfile = profile
+        val secondProfile = profile.copy(
+            uid = "other-user",
+            dailyWaterGoalOz = 100
+        )
+        var activeUserId = firstProfile.uid
+
+        // Reuse the existing fake, but load the active account's profile.
+        val userRepository =
+            object : UserRepository by FakeUserRepository(firstProfile) {
+                override suspend fun getProfile(): Result<UserProfile?> {
+                    return Result.success(
+                        if (activeUserId == firstProfile.uid) {
+                            firstProfile
+                        } else {
+                            secondProfile
+                        }
+                    )
+                }
+            }
+
+        // Simulate an account switch between record requests.
+        val wellnessRepository =
+            object : WellnessRepository by FakeWellnessRepository() {
+                override suspend fun getMeals(
+                    startDate: String,
+                    endDate: String
+                ): Result<List<MealEntry>> {
+                    activeUserId = secondProfile.uid
+                    return Result.success(emptyList())
+                }
+
+                override suspend fun getWaterEntries(
+                    startDate: String,
+                    endDate: String
+                ): Result<List<WaterEntry>> {
+                    val amount = if (activeUserId == secondProfile.uid) {
+                        24
+                    } else {
+                        8
+                    }
+
+                    return Result.success(
+                        listOf(
+                            WaterEntry(
+                                id = "water-$activeUserId",
+                                date = startDate,
+                                amountOz = amount
+                            )
+                        )
+                    )
+                }
+            }
+
+        val repository = DefaultSummaryRepository(
+            userRepository = userRepository,
+            wellnessRepository = wellnessRepository,
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { activeUserId }
+        )
+
+        val result = repository.getWeeklySummary("2026-11-14")
+        val summary = result.getOrNull()?.days?.firstOrNull()
+
+        // A request that spans an account switch should be rejected.
+        assertTrue(
+            "Expected failure after account switch; " +
+                    "returned goal=${summary?.waterGoalOz}, " +
+                    "water=${summary?.waterOz}",
+            result.isFailure
+        )
+    }
 
     @Test
     fun dailySummary_calculatesTotalsAndProgress() = runBlocking {
@@ -106,7 +323,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = wellnessRepository,
-            stepRepository = stepRepository
+            stepRepository = stepRepository,
+            getCurrentUserId = { profile.uid }
         )
 
         val summary = repository
@@ -136,7 +354,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = FakeWellnessRepository(),
-            stepRepository = FakeStepRepository()
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { profile.uid }
         )
 
         val summary = repository
@@ -152,7 +371,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = FakeWellnessRepository(),
-            stepRepository = FakeStepRepository()
+            stepRepository = FakeStepRepository(),
+            getCurrentUserId = { profile.uid }
         )
 
         val summary = repository
@@ -174,7 +394,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = wellnessRepository,
-            stepRepository = stepRepository
+            stepRepository = stepRepository,
+            getCurrentUserId = { profile.uid }
         )
 
         val summary = repository
@@ -244,7 +465,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = wellnessRepository,
-            stepRepository = stepRepository
+            stepRepository = stepRepository,
+            getCurrentUserId = { profile.uid }
         )
 
         val summary = repository
@@ -279,7 +501,8 @@ class DefaultSummaryRepositoryTest {
         val repository = DefaultSummaryRepository(
             userRepository = FakeUserRepository(profile),
             wellnessRepository = FakeWellnessRepository(),
-            stepRepository = stepRepository
+            stepRepository = stepRepository,
+            getCurrentUserId = { profile.uid }
         )
 
         val first = repository
