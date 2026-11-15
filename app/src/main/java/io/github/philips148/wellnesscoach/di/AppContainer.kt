@@ -20,6 +20,9 @@ import io.github.philips148.wellnesscoach.data.steps.StepRepository
 import android.content.Context
 import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
 
+import io.github.philips148.wellnesscoach.data.summary.DefaultSummaryRepository
+import io.github.philips148.wellnesscoach.data.summary.SummaryRepository
+
 class AppContainer(context: Context) {
 
     // Create the object that communicates with Firebase Authentication.
@@ -54,6 +57,12 @@ class AppContainer(context: Context) {
     val stepRepository: StepRepository = DefaultStepRepository(
         authDataSource = authDataSource,
         stepDataSource = stepDataSource
+    )
+
+    val summaryRepository: SummaryRepository = DefaultSummaryRepository(
+        userRepository = userRepository,
+        wellnessRepository = wellnessRepository,
+        stepRepository = stepRepository
     )
 
     // Shared reader for steps recorded on this phone.
