@@ -41,6 +41,8 @@ import io.github.philips148.wellnesscoach.data.steps.DefaultStepRepository
 import io.github.philips148.wellnesscoach.data.steps.FirestoreStepDataSource
 import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
 
+import io.github.philips148.wellnesscoach.data.summary.DefaultSummaryRepository
+
 @RunWith(AndroidJUnit4::class)
 class RegistrationProfileTest {
 
@@ -109,6 +111,14 @@ class RegistrationProfileTest {
             stepDataSource = FirestoreStepDataSource(database)
         )
 
+        // Build dashboard summaries using this test's repositories and account.
+        val summaryRepository = DefaultSummaryRepository(
+            userRepository = userRepository,
+            wellnessRepository = wellnessRepository,
+            stepRepository = stepRepository,
+            getCurrentUserId = authDataSource::getCurrentUserId
+        )
+
         // Construct the phone reader; this registration test does not
         // navigate to Steps or start a recording subscription.
         val phoneStepDataSource = PhoneStepDataSource(context)
@@ -133,6 +143,7 @@ class RegistrationProfileTest {
                         waterRepository = waterRepository,
                         stepRepository = stepRepository,
                         phoneStepDataSource = phoneStepDataSource,
+                        summaryRepository = summaryRepository,
                         onSignOutClick = authRepository::signOut
                     )
                 }
