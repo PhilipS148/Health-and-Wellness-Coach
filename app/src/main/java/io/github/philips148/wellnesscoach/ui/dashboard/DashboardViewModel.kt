@@ -13,6 +13,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+import io.github.philips148.wellnesscoach.data.model.TrackingCategories
+import kotlinx.coroutines.CancellationException
+
 data class DashboardUiState(
     val displayName: String = "",
     val dailySummary: DailySummary? = null,
@@ -74,6 +77,8 @@ class DashboardViewModel(
                     isLoading = false
                 )
 
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 uiState = uiState.copy(
                     isLoading = false,
@@ -87,25 +92,30 @@ class DashboardViewModel(
     private fun createProgressMessage(
         summary: DailySummary
     ): String {
-        if (
-            summary.waterGoalOz > 0 &&
-            summary.waterOz >= summary.waterGoalOz
-        ) {
-            return "You reached your hydration goal today."
+        val categories = summary.selectedCategories
+
+        if (TrackingCategories.HYDRATION in categories) {
+            if (
+                summary.waterGoalOz > 0 &&
+                summary.waterOz >= summary.waterGoalOz
+            ) {
+                return "You reached your hydration goal today."
+            }
+
+            if (
+                summary.waterGoalOz > 0 &&
+                summary.waterOz > 0
+            ) {
+                val remaining =
+                    (summary.waterGoalOz - summary.waterOz)
+                        .coerceAtLeast(0)
+
+                return "You have $remaining fl oz left to reach your hydration goal."
+            }
         }
 
         if (
-            summary.waterGoalOz > 0 &&
-            summary.waterOz > 0
-        ) {
-            val remaining =
-                (summary.waterGoalOz - summary.waterOz)
-                    .coerceAtLeast(0)
-
-            return "You have $remaining fl oz left to reach your hydration goal."
-        }
-
-        if (
+            TrackingCategories.STEPS in categories &&
             summary.steps != null &&
             summary.stepGoal > 0
         ) {

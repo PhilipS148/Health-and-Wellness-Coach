@@ -29,6 +29,7 @@ import androidx.compose.material3.ButtonDefaults
 import io.github.philips148.wellnesscoach.data.summary.DailySummary
 import io.github.philips148.wellnesscoach.data.summary.WeeklySummary
 
+import io.github.philips148.wellnesscoach.data.model.TrackingCategories
 @Composable
 fun DashboardScreen(
     uiState: DashboardUiState,
@@ -204,6 +205,7 @@ private fun DashboardHeader(
     }
 }
 
+
 @Composable
 private fun GoalSection(
     summary: DailySummary,
@@ -211,6 +213,19 @@ private fun GoalSection(
     onHydrationClick: () -> Unit,
     onStepsClick: () -> Unit
 ) {
+    val showSteps =
+        TrackingCategories.STEPS in summary.selectedCategories
+
+    val showHydration =
+        TrackingCategories.HYDRATION in summary.selectedCategories
+
+    val showCalories =
+        TrackingCategories.MEALS in summary.selectedCategories
+
+    if (!showSteps && !showHydration && !showCalories) {
+        return
+    }
+
     Column(
         modifier = Modifier.padding(
             horizontal = 16.dp,
@@ -231,33 +246,43 @@ private fun GoalSection(
             horizontalArrangement =
                 Arrangement.spacedBy(8.dp)
         ) {
-            GoalCard(
-                title = "Steps",
-                value = summary.steps?.toString()
-                    ?: "Unavailable",
-                goal = "${summary.stepGoal}",
-                modifier = Modifier.weight(1f),
-                onClick = onStepsClick
-            )
+            // Steps card
+            if (showSteps) {
+                GoalCard(
+                    title = "Steps",
+                    value = summary.steps?.toString()
+                        ?: "Unavailable",
+                    goal = "${summary.stepGoal}",
+                    modifier = Modifier.weight(1f),
+                    onClick = onStepsClick
+                )
+            }
 
-            GoalCard(
-                title = "Hydration",
-                value = "${summary.waterOz} oz",
-                goal = "${summary.waterGoalOz} oz",
-                modifier = Modifier.weight(1f),
-                onClick = onHydrationClick
-            )
+            // Hydration card
+            if (showHydration) {
+                GoalCard(
+                    title = "Hydration",
+                    value = "${summary.waterOz} oz",
+                    goal = "${summary.waterGoalOz} oz",
+                    modifier = Modifier.weight(1f),
+                    onClick = onHydrationClick
+                )
+            }
 
-            GoalCard(
-                title = "Calories",
-                value = "${summary.calories}",
-                goal = "${summary.calorieGoal}",
-                modifier = Modifier.weight(1f),
-                onClick = onMealsClick
-            )
+            // Calories card
+            if (showCalories) {
+                GoalCard(
+                    title = "Calories",
+                    value = "${summary.calories}",
+                    goal = "${summary.calorieGoal}",
+                    modifier = Modifier.weight(1f),
+                    onClick = onMealsClick
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun GoalCard(
@@ -300,10 +325,24 @@ private fun GoalCard(
     }
 }
 
+
 @Composable
 private fun DailyProgressSection(
     summary: DailySummary
 ) {
+    val showHydration =
+        TrackingCategories.HYDRATION in summary.selectedCategories
+
+    val showSteps =
+        TrackingCategories.STEPS in summary.selectedCategories
+
+    val showSleep =
+        TrackingCategories.SLEEP in summary.selectedCategories
+
+    if (!showHydration && !showSteps && !showSleep) {
+        return
+    }
+
     Column(
         modifier = Modifier.padding(16.dp)
     ) {
@@ -316,57 +355,58 @@ private fun DailyProgressSection(
             modifier = Modifier.height(12.dp)
         )
 
-        ProgressRow(
-            label = "Hydration",
-            value = "${summary.waterOz} / ${summary.waterGoalOz} oz",
-            progress = summary.waterProgress.toFloat()
-        )
-
-        if (summary.steps == null) {
-            Text(
-                text = "Steps",
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            Text(
-                text = "No step total recorded today.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        } else {
+        if (showHydration) {
             ProgressRow(
-                label = "Steps",
-                value =
-                    "${summary.steps} / ${summary.stepGoal}",
-                progress =
-                    summary.stepProgress
-                        ?.toFloat()
-                        ?: 0f
+                label = "Hydration",
+                value = "${summary.waterOz} / ${summary.waterGoalOz} oz",
+                progress = summary.waterProgress.toFloat()
             )
         }
 
-        if (summary.sleepHours == null) {
-            Text(
-                text = "Sleep",
-                style = MaterialTheme.typography.titleSmall
-            )
+        if (showSteps) {
+            if (summary.steps == null) {
+                Text(
+                    text = "Steps",
+                    style = MaterialTheme.typography.titleSmall
+                )
 
-            Text(
-                text = "No sleep entry recorded today.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        } else {
-            ProgressRow(
-                label = "Sleep",
-                value =
-                    "${summary.sleepHours} / ${summary.sleepGoalHours} hrs",
-                progress =
-                    summary.sleepProgress
-                        ?.toFloat()
-                        ?: 0f
-            )
+                Text(
+                    text = "No step total recorded today.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                ProgressRow(
+                    label = "Steps",
+                    value = "${summary.steps} / ${summary.stepGoal}",
+                    progress = summary.stepProgress
+                        ?.toFloat() ?: 0f
+                )
+            }
+        }
+
+        if (showSleep) {
+            if (summary.sleepHours == null) {
+                Text(
+                    text = "Sleep",
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Text(
+                    text = "No sleep entry recorded today.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                ProgressRow(
+                    label = "Sleep",
+                    value = "${summary.sleepHours} / ${summary.sleepGoalHours} hrs",
+                    progress = summary.sleepProgress
+                        ?.toFloat() ?: 0f
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun ProgressRow(
@@ -437,11 +477,29 @@ private fun ProgressMessage(
     }
 }
 
+
 @Composable
 private fun WeeklyProgressSection(
     summary: WeeklySummary
 ) {
     val goalSource = summary.days.firstOrNull()
+    val categories = goalSource?.selectedCategories.orEmpty()
+
+    val showCalories =
+        TrackingCategories.MEALS in categories
+
+    val showHydration =
+        TrackingCategories.HYDRATION in categories
+
+    val showSteps =
+        TrackingCategories.STEPS in categories
+
+    val showSleep =
+        TrackingCategories.SLEEP in categories
+
+    if (!showCalories && !showHydration && !showSteps && !showSleep) {
+        return
+    }
 
     Column(
         modifier = Modifier.padding(16.dp)
@@ -467,50 +525,57 @@ private fun WeeklyProgressSection(
                 verticalArrangement =
                     Arrangement.spacedBy(14.dp)
             ) {
-
-                WeeklyProgressRow(
-                    label = "Calories",
-                    value = "%.0f avg".format(
-                        summary.averageDailyCalories
-                    ),
-                    progress = calculateWeeklyProgress(
-                        summary.averageDailyCalories,
-                        goalSource?.calorieGoal?.toDouble()
+                if (showCalories) {
+                    WeeklyProgressRow(
+                        label = "Calories",
+                        value = "%.0f avg".format(
+                            summary.averageDailyCalories
+                        ),
+                        progress = calculateWeeklyProgress(
+                            summary.averageDailyCalories,
+                            goalSource?.calorieGoal?.toDouble()
+                        )
                     )
-                )
+                }
 
-                WeeklyProgressRow(
-                    label = "Hydration",
-                    value = "%.1f oz avg".format(
-                        summary.averageDailyWaterOz
-                    ),
-                    progress = calculateWeeklyProgress(
-                        summary.averageDailyWaterOz,
-                        goalSource?.waterGoalOz?.toDouble()
+                if (showHydration) {
+                    WeeklyProgressRow(
+                        label = "Hydration",
+                        value = "%.1f oz avg".format(
+                            summary.averageDailyWaterOz
+                        ),
+                        progress = calculateWeeklyProgress(
+                            summary.averageDailyWaterOz,
+                            goalSource?.waterGoalOz?.toDouble()
+                        )
                     )
-                )
+                }
 
-                WeeklyProgressRow(
-                    label = "Steps",
-                    value = summary.averageDailySteps?.let {
-                        "%.0f avg".format(it)
-                    } ?: "No recorded data",
-                    progress = calculateWeeklyProgress(
-                        summary.averageDailySteps,
-                        goalSource?.stepGoal?.toDouble()
+                if (showSteps) {
+                    WeeklyProgressRow(
+                        label = "Steps",
+                        value = summary.averageDailySteps?.let {
+                            "%.0f avg".format(it)
+                        } ?: "No recorded data",
+                        progress = calculateWeeklyProgress(
+                            summary.averageDailySteps,
+                            goalSource?.stepGoal?.toDouble()
+                        )
                     )
-                )
+                }
 
-                WeeklyProgressRow(
-                    label = "Sleep",
-                    value = summary.averageSleepHours?.let {
-                        "%.1f hrs avg".format(it)
-                    } ?: "No recorded data",
-                    progress = calculateWeeklyProgress(
-                        summary.averageSleepHours,
-                        goalSource?.sleepGoalHours
+                if (showSleep) {
+                    WeeklyProgressRow(
+                        label = "Sleep",
+                        value = summary.averageSleepHours?.let {
+                            "%.1f hrs avg".format(it)
+                        } ?: "No recorded data",
+                        progress = calculateWeeklyProgress(
+                            summary.averageSleepHours,
+                            goalSource?.sleepGoalHours
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -578,19 +643,30 @@ private fun calculateWeeklyProgress(
         .coerceIn(0f, 1f)
 }
 
+
 @Composable
 private fun EmptyStateIfNeeded(
     summary: DailySummary
 ) {
+    val categories = summary.selectedCategories
+
     val hasData =
-        summary.calories > 0 ||
-                summary.waterOz > 0 ||
-                summary.steps != null ||
-                summary.sleepHours != null ||
-                summary.workoutCount > 0 ||
-                summary.stressLevel != null ||
-                summary.mood != null ||
-                summary.energyLevel != null
+        (TrackingCategories.MEALS in categories &&
+                summary.calories > 0) ||
+                (TrackingCategories.HYDRATION in categories &&
+                        summary.waterOz > 0) ||
+                (TrackingCategories.STEPS in categories &&
+                        summary.steps != null) ||
+                (TrackingCategories.SLEEP in categories &&
+                        summary.sleepHours != null) ||
+                (TrackingCategories.WORKOUTS in categories &&
+                        summary.workoutCount > 0) ||
+                (TrackingCategories.STRESS in categories &&
+                        summary.stressLevel != null) ||
+                (TrackingCategories.MOOD in categories &&
+                        summary.mood != null) ||
+                (TrackingCategories.ENERGY in categories &&
+                        summary.energyLevel != null)
 
     if (!hasData) {
         Card(
@@ -599,12 +675,17 @@ private fun EmptyStateIfNeeded(
                 .padding(16.dp)
         ) {
             Text(
-                text = "No wellness records have been saved for today yet.",
+                text = if (categories.isEmpty()) {
+                    "No tracking categories selected. Choose categories in your goal settings to see your progress."
+                } else {
+                    "No wellness records have been saved for your selected categories today yet."
+                },
                 modifier = Modifier.padding(16.dp)
             )
         }
     }
 }
+
 
 @Composable
 private fun ShortcutSection(
