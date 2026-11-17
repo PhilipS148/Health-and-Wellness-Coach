@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                         waterRepository = appContainer.waterRepository,
                         stepRepository = appContainer.stepRepository,
                         phoneStepDataSource = appContainer.phoneStepDataSource,
+                        summaryRepository = appContainer.summaryRepository,
                         onSignOutClick = appViewModel::signOut,
                         modifier = Modifier.padding(innerPadding)
                     )

@@ -73,6 +73,11 @@ import io.github.philips148.wellnesscoach.ui.goals.GoalSettingsViewModelFactory
 import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
 import io.github.philips148.wellnesscoach.data.steps.StepRepository
 import io.github.philips148.wellnesscoach.ui.steps.StepRoute
+
+import io.github.philips148.wellnesscoach.data.summary.SummaryRepository
+import io.github.philips148.wellnesscoach.ui.dashboard.DashboardScreen
+import io.github.philips148.wellnesscoach.ui.dashboard.DashboardViewModel
+import io.github.philips148.wellnesscoach.ui.dashboard.DashboardViewModelFactory
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -82,6 +87,7 @@ fun AppNavHost(
     waterRepository: WaterRepository,
     stepRepository: StepRepository,
     phoneStepDataSource: PhoneStepDataSource,
+    summaryRepository: SummaryRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -257,42 +263,46 @@ fun AppNavHost(
             } else {
                 // Screens available when a signed-in user is detected.
                 composable(AppRoutes.DASHBOARD) {
-                    NavigationPreview(title = "Dashboard") {
-                        Button(onClick = { navController.navigate(AppRoutes.CHECK_INS) }) {
-                            Text("Daily Check-in")
+                    val dashboardViewModel: DashboardViewModel =
+                        viewModel(
+                            factory = DashboardViewModelFactory(
+                                summaryRepository = summaryRepository,
+                                userRepository = userRepository
+                            )
+                        )
+
+                    DashboardScreen(
+                        uiState = dashboardViewModel.uiState,
+                        onRefresh = dashboardViewModel::refresh,
+
+                        onMealsClick = {
+                            navController.navigate(AppRoutes.MEALS)
+                        },
+
+                        onHydrationClick = {
+                            navController.navigate(AppRoutes.HYDRATION)
+                        },
+
+                        onWorkoutsClick = {
+                            navController.navigate(AppRoutes.WORKOUTS)
+                        },
+
+                        onSleepClick = {
+                            navController.navigate(AppRoutes.SLEEP)
+                        },
+
+                        onCheckInClick = {
+                            navController.navigate(AppRoutes.CHECK_INS)
+                        },
+
+                        onStepsClick = {
+                            navController.navigate(AppRoutes.STEPS)
+                        },
+
+                        onProfileClick = {
+                            navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
                         }
-                        Button(onClick = { navController.navigate(AppRoutes.WORKOUTS) }) {
-                            Text("Workouts")
-                        }
-                        Button(onClick = { navController.navigate(AppRoutes.HYDRATION) }) {
-                            Text("Hydration")
-                        }
-                        Button(onClick = { navController.navigate(AppRoutes.SLEEP) }) {
-                            Text("Sleep")
-                        }
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
-                            }
-                        ) {
-                            Text("Account settings")
-                        }
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.MEALS)
-                            }
-                        ) {
-                            Text("Meals")
-                        }
-                        // Open the phone-based Steps screen.
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.STEPS)
-                            }
-                        ) {
-                            Text("Phone-based steps")
-                        }
-                    }
+                    )
                 }
 
                 composable(AppRoutes.MEALS) {
