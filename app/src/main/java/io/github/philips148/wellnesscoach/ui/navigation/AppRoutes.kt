@@ -19,4 +19,7 @@ object AppRoutes {
     const val MEALS = "meals"
     // Phone-based step tracking screen.
     const val STEPS = "steps"
+    const val LOGS = "logs"
+    const val AI_COACH = "ai_coach"
+    const val PROGRESS = "progress"
 }
