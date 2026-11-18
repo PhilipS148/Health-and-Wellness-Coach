@@ -78,6 +78,10 @@ import io.github.philips148.wellnesscoach.data.summary.SummaryRepository
 import io.github.philips148.wellnesscoach.ui.dashboard.DashboardScreen
 import io.github.philips148.wellnesscoach.ui.dashboard.DashboardViewModel
 import io.github.philips148.wellnesscoach.ui.dashboard.DashboardViewModelFactory
+
+import androidx.compose.material3.Scaffold
+import androidx.navigation.compose.currentBackStackEntryAsState
+import io.github.philips148.wellnesscoach.ui.logs.LogsScreen
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -139,424 +143,497 @@ fun AppNavHost(
     key(navigationUserId) {
         val navController = rememberNavController()
 
-        // Keep the initial destination stable while this account is active.
         val startDestination = remember {
             when {
-                navigationUserId == null -> AppRoutes.LOGIN
+                navigationUserId == null ->
+                    AppRoutes.LOGIN
 
                 pendingSetupUserId == navigationUserId ->
                     "${AppRoutes.PROFILE}?setup=true"
 
-                else -> AppRoutes.DASHBOARD
+                else ->
+                    AppRoutes.DASHBOARD
             }
         }
 
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = modifier
-        ) {
-            if (navigationUserId == null) {
-                // Screens available while signed out.
-                composable(AppRoutes.LOGIN) {
-                    val loginViewModel: LoginViewModel = viewModel(
-                        factory = LoginViewModelFactory(authRepository)
-                    )
+        val navBackStackEntry by
+        navController.currentBackStackEntryAsState()
 
-                    LoginScreen(
-                        uiState = loginViewModel.uiState,
-                        onEmailChange = loginViewModel::onEmailChange,
-                        onPasswordChange = loginViewModel::onPasswordChange,
-                        onSignInClick = loginViewModel::signIn,
-                        onForgotPasswordClick = {
-                            navController.navigate(AppRoutes.PASSWORD_RESET)
-                        },
-                        onCreateAccountClick = {
-                            pendingSetupUserId = null
-                            registrationViewModel.resetForm()
-                            navController.navigate(AppRoutes.REGISTER)
-                        }
-                    )
+        val currentRoute =
+            navBackStackEntry?.destination?.route
+
+        val topLevelRoutes = setOf(
+            AppRoutes.DASHBOARD,
+            AppRoutes.LOGS,
+            AppRoutes.AI_COACH,
+            AppRoutes.PROGRESS,
+            AppRoutes.ACCOUNT_SETTINGS
+        )
+
+        val showBottomNavigation =
+            navigationUserId != null &&
+                    currentRoute in topLevelRoutes
+
+        val navigateToTopLevel: (String) -> Unit = { route ->
+            navController.navigate(route) {
+                popUpTo(AppRoutes.DASHBOARD) {
+                    saveState = true
                 }
 
-                composable(AppRoutes.REGISTER) {
-                    RegistrationScreen(
-                        onRegistrationSuccess = handleRegistrationSuccess,
-                        viewModel = registrationViewModel,
-                        onBackClick = {
-                            if (!registrationViewModel.uiState.isLoading) {
-                                registrationViewModel.cancelRegistration()
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+
+        Scaffold(
+            bottomBar = {
+                if (showBottomNavigation) {
+                    BottomNavigationBar(
+                        currentRoute = currentRoute,
+                        onNavigate = navigateToTopLevel
+                    )
+                }
+            }
+        ) { innerPadding ->
+
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = modifier.padding(innerPadding)
+            ) {
+                if (navigationUserId == null) {
+                    // Screens available while signed out.
+                    composable(AppRoutes.LOGIN) {
+                        val loginViewModel: LoginViewModel = viewModel(
+                            factory = LoginViewModelFactory(authRepository)
+                        )
+
+                        LoginScreen(
+                            uiState = loginViewModel.uiState,
+                            onEmailChange = loginViewModel::onEmailChange,
+                            onPasswordChange = loginViewModel::onPasswordChange,
+                            onSignInClick = loginViewModel::signIn,
+                            onForgotPasswordClick = {
+                                navController.navigate(AppRoutes.PASSWORD_RESET)
+                            },
+                            onCreateAccountClick = {
+                                pendingSetupUserId = null
+                                registrationViewModel.resetForm()
+                                navController.navigate(AppRoutes.REGISTER)
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.REGISTER) {
+                        RegistrationScreen(
+                            onRegistrationSuccess = handleRegistrationSuccess,
+                            viewModel = registrationViewModel,
+                            onBackClick = {
+                                if (!registrationViewModel.uiState.isLoading) {
+                                    registrationViewModel.cancelRegistration()
+                                    navController.popBackStack()
+                                }
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.PASSWORD_RESET) {
+                        val passwordResetViewModel: PasswordResetViewModel =
+                            viewModel(
+                                factory = PasswordResetViewModelFactory(
+                                    authRepository
+                                )
+                            )
+
+                        val uiState = passwordResetViewModel.uiState
+
+                        LaunchedEffect(uiState.requestSuccessful) {
+                            if (uiState.requestSuccessful) {
+                                val email = Uri.encode(uiState.email)
+
+                                navController.navigate(
+                                    "${AppRoutes.PASSWORD_RESET_SENT}?email=$email"
+                                ) {
+                                    launchSingleTop = true
+                                }
+
+                                passwordResetViewModel.onRequestSuccessHandled()
+                            }
+                        }
+
+                        PasswordResetScreen(
+                            uiState = uiState,
+                            onEmailChange =
+                                passwordResetViewModel::onEmailChange,
+                            onSendResetLinkClick =
+                                passwordResetViewModel::sendPasswordReset,
+                            onBackToSignInClick = {
+                                navController.popBackStack(
+                                    AppRoutes.LOGIN,
+                                    false
+                                )
+                            }
+                        )
+                    }
+
+                    composable(
+                        route =
+                            "${AppRoutes.PASSWORD_RESET_SENT}?email={email}",
+                        arguments = listOf(
+                            navArgument("email") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val email =
+                            backStackEntry.arguments?.getString("email").orEmpty()
+
+                        PasswordResetSentScreen(
+                            email = email,
+                            onBackToSignInClick = {
+                                navController.popBackStack(
+                                    AppRoutes.LOGIN,
+                                    false
+                                )
+                            },
+                            onUseDifferentEmailClick = {
+                                navController.popBackStack(
+                                    AppRoutes.PASSWORD_RESET,
+                                    false
+                                )
+                            }
+                        )
+                    }
+                } else {
+                    // Screens available when a signed-in user is detected.
+                    composable(AppRoutes.DASHBOARD) {
+                        val dashboardViewModel: DashboardViewModel =
+                            viewModel(
+                                factory = DashboardViewModelFactory(
+                                    summaryRepository = summaryRepository,
+                                    userRepository = userRepository
+                                )
+                            )
+
+                        DashboardScreen(
+                            uiState = dashboardViewModel.uiState,
+                            onRefresh = dashboardViewModel::refresh,
+
+                            onMealsClick = {
+                                navController.navigate(AppRoutes.MEALS)
+                            },
+
+                            onHydrationClick = {
+                                navController.navigate(AppRoutes.HYDRATION)
+                            },
+
+                            onWorkoutsClick = {
+                                navController.navigate(AppRoutes.WORKOUTS)
+                            },
+
+                            onSleepClick = {
+                                navController.navigate(AppRoutes.SLEEP)
+                            },
+
+                            onCheckInClick = {
+                                navController.navigate(AppRoutes.CHECK_INS)
+                            },
+
+                            onStepsClick = {
+                                navController.navigate(AppRoutes.STEPS)
+                            },
+
+                            onProfileClick = {
+                                navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.LOGS) {
+                        LogsScreen(
+                            onMealsClick = {
+                                navController.navigate(AppRoutes.MEALS)
+                            },
+                            onHydrationClick = {
+                                navController.navigate(AppRoutes.HYDRATION)
+                            },
+                            onWorkoutsClick = {
+                                navController.navigate(AppRoutes.WORKOUTS)
+                            },
+                            onSleepClick = {
+                                navController.navigate(AppRoutes.SLEEP)
+                            },
+                            onCheckInClick = {
+                                navController.navigate(AppRoutes.CHECK_INS)
+                            },
+                            onStepsClick = {
+                                navController.navigate(AppRoutes.STEPS)
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.AI_COACH) {
+                        NavigationPreview(title = "AI Coach")
+                    }
+
+                    composable(AppRoutes.PROGRESS) {
+                        NavigationPreview(title = "Progress")
+                    }
+
+                    composable(AppRoutes.MEALS) {
+
+                        val mealViewModel: MealTrackingViewModel =
+                            viewModel(
+                                factory = MealTrackingViewModelFactory(
+                                    wellnessRepository
+                                )
+                            )
+
+                        val mealState = mealViewModel.uiState.value
+
+                        MealTrackingScreen(
+                            uiState = mealState,
+                            onDateChange = mealViewModel::onDateChange,
+                            onMealNameChange = mealViewModel::onMealNameChange,
+                            onCaloriesChange = mealViewModel::onCaloriesChange,
+                            onLoadDateClick = mealViewModel::loadMeals,
+                            onSaveClick = mealViewModel::saveMeal,
+                            onEditClick = mealViewModel::editMeal,
+                            onDeleteClick = mealViewModel::deleteMeal,
+                            onCancelEditClick = mealViewModel::cancelEdit,
+                            onBackClick = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.HYDRATION) {
+                        val hydrationViewModel: HydrationViewModel = viewModel(
+                            factory = HydrationViewModelFactory(waterRepository, userRepository)
+                        )
+                        HydrationScreen(
+                            uiState = hydrationViewModel.uiState,
+                            onDateInputChange = hydrationViewModel::onDateInputChange,
+                            onEntryDateChange = hydrationViewModel::onEntryDateChange,
+                            onAmountChange = hydrationViewModel::onAmountChange,
+                            onRefresh = hydrationViewModel::refresh,
+                            onSave = hydrationViewModel::save,
+                            onEdit = hydrationViewModel::edit,
+                            onCancelEdit = hydrationViewModel::cancelEdit,
+                            onDelete = hydrationViewModel::requestDelete,
+                            onDismissDelete = hydrationViewModel::dismissDelete,
+                            onConfirmDelete = hydrationViewModel::confirmDelete,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(AppRoutes.SLEEP) {
+                        val sleepViewModel: SleepViewModel = viewModel(
+                            factory = SleepViewModelFactory(wellnessRepository)
+                        )
+
+                        SleepScreen(
+                            uiState = sleepViewModel.uiState,
+                            onBack = { navController.popBackStack() },
+                            onDateChange = sleepViewModel::onDateChange,
+                            onHoursChange = sleepViewModel::onHoursChange,
+                            onMinutesChange = sleepViewModel::onMinutesChange,
+                            onSave = sleepViewModel::save,
+                            onCancelEdit = sleepViewModel::cancelEditing,
+                            onEdit = sleepViewModel::startEditing,
+                            onDelete = sleepViewModel::delete,
+                            onRetry = sleepViewModel::loadEntries
+                        )
+                    }
+
+                    composable(AppRoutes.WORKOUTS) {
+                        val workoutViewModel: WorkoutViewModel = viewModel(
+                            factory = WorkoutViewModelFactory(wellnessRepository)
+                        )
+                        WorkoutScreen(
+                            uiState = workoutViewModel.uiState,
+                            onDateChange = workoutViewModel::onDateChange,
+                            onTypeChange = workoutViewModel::onTypeChange,
+                            onNameChange = workoutViewModel::onNameChange,
+                            onDistanceChange = workoutViewModel::onDistanceChange,
+                            onDurationChange = workoutViewModel::onDurationChange,
+                            onAddSet = workoutViewModel::addSet,
+                            onRemoveSet = workoutViewModel::removeSet,
+                            onRepsChange = workoutViewModel::onRepsChange,
+                            onWeightChange = workoutViewModel::onWeightChange,
+                            onHistoryStartChange = workoutViewModel::onHistoryStartChange,
+                            onHistoryEndChange = workoutViewModel::onHistoryEndChange,
+                            onRefresh = workoutViewModel::refresh,
+                            onSave = workoutViewModel::save,
+                            onEdit = workoutViewModel::edit,
+                            onCancelEdit = workoutViewModel::cancelEdit,
+                            onDelete = workoutViewModel::requestDelete,
+                            onDismissDelete = workoutViewModel::dismissDelete,
+                            onConfirmDelete = workoutViewModel::confirmDelete,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(AppRoutes.CHECK_INS) {
+                        val checkInViewModel: CheckInViewModel = viewModel(
+                            factory = CheckInViewModelFactory(wellnessRepository, userRepository)
+                        )
+                        CheckInScreen(
+                            uiState = checkInViewModel.uiState,
+                            onDateChange = checkInViewModel::onDateChange,
+                            onStressChange = checkInViewModel::onStressChange,
+                            onMoodChange = checkInViewModel::onMoodChange,
+                            onEnergyChange = checkInViewModel::onEnergyChange,
+                            onHistoryStartChange = checkInViewModel::onHistoryStartChange,
+                            onHistoryEndChange = checkInViewModel::onHistoryEndChange,
+                            onRefresh = checkInViewModel::refresh,
+                            onSave = checkInViewModel::save,
+                            onEdit = checkInViewModel::edit,
+                            onCancelEdit = checkInViewModel::cancelEdit,
+                            onDelete = checkInViewModel::requestDelete,
+                            onDismissDelete = checkInViewModel::dismissDelete,
+                            onConfirmDelete = checkInViewModel::confirmDelete,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // Register Steps as its own screen.
+                    composable(AppRoutes.STEPS) {
+                        StepRoute(
+                            authRepository = authRepository,
+                            userRepository = userRepository,
+                            stepRepository = stepRepository,
+                            phoneStepDataSource = phoneStepDataSource,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(AppRoutes.ACCOUNT_SETTINGS) {
+                        NavigationPreview(
+                            title = "Account settings",
+                            onBack = { navController.popBackStack() }
+                        ) {
+                            Button(
+                                onClick = {
+                                    navController.navigate(AppRoutes.PROFILE)
+                                }
+                            ) {
+                                Text("Edit Profile")
+                            }
+
+                            Button(
+                                onClick = {
+                                    navController.navigate(AppRoutes.GOAL_SETTINGS)
+                                }
+                            ) {
+                                Text("Goals & Tracking")
+                            }
+
+                            Button(
+                                onClick = {
+                                    pendingSetupUserId = null
+                                    onSignOutClick()
+                                }
+                            ) {
+                                Text("Log Out")
+                            }
+
+                            Button(
+                                onClick = {
+                                    navController.navigate(AppRoutes.DELETE_ACCOUNT)
+                                }
+                            ) {
+                                Text("Delete Account")
+                            }
+                        }
+                    }
+
+                    composable(
+                        route = "${AppRoutes.PROFILE}?setup={setup}",
+                        arguments = listOf(
+                            navArgument("setup") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val isSetupFlow =
+                            backStackEntry.arguments?.getBoolean("setup") ?: false
+
+                        val profileViewModel: ProfileViewModel = viewModel(
+                            factory = ProfileViewModelFactory(
+                                userRepository = userRepository,
+                                authRepository = authRepository,
+                                isSetupFlow = isSetupFlow
+                            )
+                        )
+
+                        val uiState = profileViewModel.uiState
+
+                        LaunchedEffect(uiState.isSetupComplete) {
+                            if (uiState.isSetupComplete) {
+                                pendingSetupUserId = null
+
+                                navController.navigate(AppRoutes.DASHBOARD) {
+                                    popUpTo(backStackEntry.destination.id) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+
+                        ProfileScreen(
+                            uiState = uiState,
+                            onUsernameChange = profileViewModel::onUsernameChange,
+                            onHeightChange = profileViewModel::onHeightChange,
+                            onWeightChange = profileViewModel::onWeightChange,
+                            onSaveClick = profileViewModel::saveProfile,
+                            onRetryClick = profileViewModel::loadProfile,
+                            onBackClick = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+
+                    composable(AppRoutes.DELETE_ACCOUNT) {
+                        val deleteAccountViewModel: DeleteAccountViewModel = viewModel(
+                            factory = DeleteAccountViewModelFactory(authRepository)
+                        )
+
+                        DeleteAccountScreen(
+                            uiState = deleteAccountViewModel.uiState,
+                            onPasswordChange = deleteAccountViewModel::onPasswordChange,
+                            onDeleteClick = deleteAccountViewModel::deleteAccount,
+                            onCancelClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(AppRoutes.GOAL_SETTINGS) {
+                        val goalSettingsViewModel: GoalSettingsViewModel = viewModel(
+                            factory = GoalSettingsViewModelFactory(userRepository)
+                        )
+                        val uiState = goalSettingsViewModel.uiState
+
+                        LaunchedEffect(uiState.saveSuccessful) {
+                            if (uiState.saveSuccessful) {
                                 navController.popBackStack()
                             }
                         }
-                    )
-                }
 
-                composable(AppRoutes.PASSWORD_RESET) {
-                    val passwordResetViewModel: PasswordResetViewModel =
-                        viewModel(
-                            factory = PasswordResetViewModelFactory(
-                                authRepository
-                            )
+                        GoalSettingsScreen(
+                            uiState = goalSettingsViewModel.uiState,
+                            onCalorieGoalChange = goalSettingsViewModel::onCalorieGoalChange,
+                            onWaterGoalChange = goalSettingsViewModel::onWaterGoalChange,
+                            onStepGoalChange = goalSettingsViewModel::onStepGoalChange,
+                            onSleepGoalChange = goalSettingsViewModel::onSleepGoalChange,
+                            onCategoryToggle = goalSettingsViewModel::onCategoryToggle,
+                            onSaveClick = goalSettingsViewModel::save,
+                            onRetryClick = goalSettingsViewModel::loadProfile,
+                            onBackClick = { navController.popBackStack() }
                         )
-
-                    val uiState = passwordResetViewModel.uiState
-
-                    LaunchedEffect(uiState.requestSuccessful) {
-                        if (uiState.requestSuccessful) {
-                            val email = Uri.encode(uiState.email)
-
-                            navController.navigate(
-                                "${AppRoutes.PASSWORD_RESET_SENT}?email=$email"
-                            ) {
-                                launchSingleTop = true
-                            }
-
-                            passwordResetViewModel.onRequestSuccessHandled()
-                        }
                     }
-
-                    PasswordResetScreen(
-                        uiState = uiState,
-                        onEmailChange =
-                            passwordResetViewModel::onEmailChange,
-                        onSendResetLinkClick =
-                            passwordResetViewModel::sendPasswordReset,
-                        onBackToSignInClick = {
-                            navController.popBackStack(
-                                AppRoutes.LOGIN,
-                                false
-                            )
-                        }
-                    )
-                }
-
-                composable(
-                    route =
-                        "${AppRoutes.PASSWORD_RESET_SENT}?email={email}",
-                    arguments = listOf(
-                        navArgument("email") {
-                            type = NavType.StringType
-                            defaultValue = ""
-                        }
-                    )
-                ) { backStackEntry ->
-                    val email =
-                        backStackEntry.arguments?.getString("email").orEmpty()
-
-                    PasswordResetSentScreen(
-                        email = email,
-                        onBackToSignInClick = {
-                            navController.popBackStack(
-                                AppRoutes.LOGIN,
-                                false
-                            )
-                        },
-                        onUseDifferentEmailClick = {
-                            navController.popBackStack(
-                                AppRoutes.PASSWORD_RESET,
-                                false
-                            )
-                        }
-                    )
-                }
-            } else {
-                // Screens available when a signed-in user is detected.
-                composable(AppRoutes.DASHBOARD) {
-                    val dashboardViewModel: DashboardViewModel =
-                        viewModel(
-                            factory = DashboardViewModelFactory(
-                                summaryRepository = summaryRepository,
-                                userRepository = userRepository
-                            )
-                        )
-
-                    DashboardScreen(
-                        uiState = dashboardViewModel.uiState,
-                        onRefresh = dashboardViewModel::refresh,
-
-                        onMealsClick = {
-                            navController.navigate(AppRoutes.MEALS)
-                        },
-
-                        onHydrationClick = {
-                            navController.navigate(AppRoutes.HYDRATION)
-                        },
-
-                        onWorkoutsClick = {
-                            navController.navigate(AppRoutes.WORKOUTS)
-                        },
-
-                        onSleepClick = {
-                            navController.navigate(AppRoutes.SLEEP)
-                        },
-
-                        onCheckInClick = {
-                            navController.navigate(AppRoutes.CHECK_INS)
-                        },
-
-                        onStepsClick = {
-                            navController.navigate(AppRoutes.STEPS)
-                        },
-
-                        onProfileClick = {
-                            navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
-                        }
-                    )
-                }
-
-                composable(AppRoutes.MEALS) {
-
-                    val mealViewModel: MealTrackingViewModel =
-                        viewModel(
-                            factory = MealTrackingViewModelFactory(
-                                wellnessRepository
-                            )
-                        )
-
-                    val mealState = mealViewModel.uiState.value
-
-                    MealTrackingScreen(
-                        uiState = mealState,
-                        onDateChange = mealViewModel::onDateChange,
-                        onMealNameChange = mealViewModel::onMealNameChange,
-                        onCaloriesChange = mealViewModel::onCaloriesChange,
-                        onLoadDateClick = mealViewModel::loadMeals,
-                        onSaveClick = mealViewModel::saveMeal,
-                        onEditClick = mealViewModel::editMeal,
-                        onDeleteClick = mealViewModel::deleteMeal,
-                        onCancelEditClick = mealViewModel::cancelEdit,
-                        onBackClick = {
-                            navController.popBackStack()
-                        }
-                    )
-                }
-
-                composable(AppRoutes.HYDRATION) {
-                    val hydrationViewModel: HydrationViewModel = viewModel(
-                        factory = HydrationViewModelFactory(waterRepository, userRepository)
-                    )
-                    HydrationScreen(
-                        uiState = hydrationViewModel.uiState,
-                        onDateInputChange = hydrationViewModel::onDateInputChange,
-                        onEntryDateChange = hydrationViewModel::onEntryDateChange,
-                        onAmountChange = hydrationViewModel::onAmountChange,
-                        onRefresh = hydrationViewModel::refresh,
-                        onSave = hydrationViewModel::save,
-                        onEdit = hydrationViewModel::edit,
-                        onCancelEdit = hydrationViewModel::cancelEdit,
-                        onDelete = hydrationViewModel::requestDelete,
-                        onDismissDelete = hydrationViewModel::dismissDelete,
-                        onConfirmDelete = hydrationViewModel::confirmDelete,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-
-                composable(AppRoutes.SLEEP) {
-                    val sleepViewModel: SleepViewModel = viewModel(
-                        factory = SleepViewModelFactory(wellnessRepository)
-                    )
-
-                    SleepScreen(
-                        uiState = sleepViewModel.uiState,
-                        onBack = { navController.popBackStack() },
-                        onDateChange = sleepViewModel::onDateChange,
-                        onHoursChange = sleepViewModel::onHoursChange,
-                        onMinutesChange = sleepViewModel::onMinutesChange,
-                        onSave = sleepViewModel::save,
-                        onCancelEdit = sleepViewModel::cancelEditing,
-                        onEdit = sleepViewModel::startEditing,
-                        onDelete = sleepViewModel::delete,
-                        onRetry = sleepViewModel::loadEntries
-                    )
-                }
-
-                composable(AppRoutes.WORKOUTS) {
-                    val workoutViewModel: WorkoutViewModel = viewModel(
-                        factory = WorkoutViewModelFactory(wellnessRepository)
-                    )
-                    WorkoutScreen(
-                        uiState = workoutViewModel.uiState,
-                        onDateChange = workoutViewModel::onDateChange,
-                        onTypeChange = workoutViewModel::onTypeChange,
-                        onNameChange = workoutViewModel::onNameChange,
-                        onDistanceChange = workoutViewModel::onDistanceChange,
-                        onDurationChange = workoutViewModel::onDurationChange,
-                        onAddSet = workoutViewModel::addSet,
-                        onRemoveSet = workoutViewModel::removeSet,
-                        onRepsChange = workoutViewModel::onRepsChange,
-                        onWeightChange = workoutViewModel::onWeightChange,
-                        onHistoryStartChange = workoutViewModel::onHistoryStartChange,
-                        onHistoryEndChange = workoutViewModel::onHistoryEndChange,
-                        onRefresh = workoutViewModel::refresh,
-                        onSave = workoutViewModel::save,
-                        onEdit = workoutViewModel::edit,
-                        onCancelEdit = workoutViewModel::cancelEdit,
-                        onDelete = workoutViewModel::requestDelete,
-                        onDismissDelete = workoutViewModel::dismissDelete,
-                        onConfirmDelete = workoutViewModel::confirmDelete,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-
-                composable(AppRoutes.CHECK_INS) {
-                    val checkInViewModel: CheckInViewModel = viewModel(
-                        factory = CheckInViewModelFactory(wellnessRepository, userRepository)
-                    )
-                    CheckInScreen(
-                        uiState = checkInViewModel.uiState,
-                        onDateChange = checkInViewModel::onDateChange,
-                        onStressChange = checkInViewModel::onStressChange,
-                        onMoodChange = checkInViewModel::onMoodChange,
-                        onEnergyChange = checkInViewModel::onEnergyChange,
-                        onHistoryStartChange = checkInViewModel::onHistoryStartChange,
-                        onHistoryEndChange = checkInViewModel::onHistoryEndChange,
-                        onRefresh = checkInViewModel::refresh,
-                        onSave = checkInViewModel::save,
-                        onEdit = checkInViewModel::edit,
-                        onCancelEdit = checkInViewModel::cancelEdit,
-                        onDelete = checkInViewModel::requestDelete,
-                        onDismissDelete = checkInViewModel::dismissDelete,
-                        onConfirmDelete = checkInViewModel::confirmDelete,
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-
-                // Register Steps as its own screen.
-                composable(AppRoutes.STEPS) {
-                    StepRoute(
-                        authRepository = authRepository,
-                        userRepository = userRepository,
-                        stepRepository = stepRepository,
-                        phoneStepDataSource = phoneStepDataSource,
-                        onBackClick = { navController.popBackStack() }
-                    )
-                }
-
-                composable(AppRoutes.ACCOUNT_SETTINGS) {
-                    NavigationPreview(
-                        title = "Account settings",
-                        onBack = { navController.popBackStack() }
-                    ) {
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.PROFILE)
-                            }
-                        ) {
-                            Text("Edit Profile")
-                        }
-
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.GOAL_SETTINGS)
-                            }
-                        ) {
-                            Text("Goals & Tracking")
-                        }
-
-                        Button(
-                            onClick = {
-                                pendingSetupUserId = null
-                                onSignOutClick()
-                            }
-                        ) {
-                            Text("Log Out")
-                        }
-
-                        Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.DELETE_ACCOUNT)
-                            }
-                        ) {
-                            Text("Delete Account")
-                        }
-                    }
-                }
-
-                composable(
-                    route = "${AppRoutes.PROFILE}?setup={setup}",
-                    arguments = listOf(
-                        navArgument("setup") {
-                            type = NavType.BoolType
-                            defaultValue = false
-                        }
-                    )
-                ) { backStackEntry ->
-                    val isSetupFlow =
-                        backStackEntry.arguments?.getBoolean("setup") ?: false
-
-                    val profileViewModel: ProfileViewModel = viewModel(
-                        factory = ProfileViewModelFactory(
-                            userRepository = userRepository,
-                            authRepository = authRepository,
-                            isSetupFlow = isSetupFlow
-                        )
-                    )
-
-                    val uiState = profileViewModel.uiState
-
-                    LaunchedEffect(uiState.isSetupComplete) {
-                        if (uiState.isSetupComplete) {
-                            pendingSetupUserId = null
-
-                            navController.navigate(AppRoutes.DASHBOARD) {
-                                popUpTo(backStackEntry.destination.id) {
-                                    inclusive = true
-                                }
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-
-                    ProfileScreen(
-                        uiState = uiState,
-                        onUsernameChange = profileViewModel::onUsernameChange,
-                        onHeightChange = profileViewModel::onHeightChange,
-                        onWeightChange = profileViewModel::onWeightChange,
-                        onSaveClick = profileViewModel::saveProfile,
-                        onRetryClick = profileViewModel::loadProfile,
-                        onBackClick = {
-                            navController.popBackStack()
-                        }
-                    )
-                }
-
-                composable(AppRoutes.DELETE_ACCOUNT) {
-                    val deleteAccountViewModel: DeleteAccountViewModel = viewModel(
-                        factory = DeleteAccountViewModelFactory(authRepository)
-                    )
-
-                    DeleteAccountScreen(
-                        uiState = deleteAccountViewModel.uiState,
-                        onPasswordChange = deleteAccountViewModel::onPasswordChange,
-                        onDeleteClick = deleteAccountViewModel::deleteAccount,
-                        onCancelClick = { navController.popBackStack() }
-                    )
-                }
-
-                composable(AppRoutes.GOAL_SETTINGS) {
-                    val goalSettingsViewModel: GoalSettingsViewModel = viewModel(
-                        factory = GoalSettingsViewModelFactory(userRepository)
-                    )
-                    val uiState = goalSettingsViewModel.uiState
-
-                    LaunchedEffect(uiState.saveSuccessful) {
-                        if (uiState.saveSuccessful) {
-                            navController.popBackStack()
-                        }
-                    }
-
-                    GoalSettingsScreen(
-                        uiState = goalSettingsViewModel.uiState,
-                        onCalorieGoalChange = goalSettingsViewModel::onCalorieGoalChange,
-                        onWaterGoalChange = goalSettingsViewModel::onWaterGoalChange,
-                        onStepGoalChange = goalSettingsViewModel::onStepGoalChange,
-                        onSleepGoalChange = goalSettingsViewModel::onSleepGoalChange,
-                        onCategoryToggle = goalSettingsViewModel::onCategoryToggle,
-                        onSaveClick = goalSettingsViewModel::save,
-                        onRetryClick = goalSettingsViewModel::loadProfile,
-                        onBackClick = { navController.popBackStack() }
-                    )
                 }
             }
         }
