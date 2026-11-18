@@ -15,7 +15,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,23 +24,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.background
-import androidx.compose.material3.ButtonDefaults
 import io.github.philips148.wellnesscoach.data.summary.DailySummary
 import io.github.philips148.wellnesscoach.data.summary.WeeklySummary
 
 import io.github.philips148.wellnesscoach.data.model.TrackingCategories
+
 @Composable
 fun DashboardScreen(
     uiState: DashboardUiState,
     onRefresh: () -> Unit,
     onMealsClick: () -> Unit,
     onHydrationClick: () -> Unit,
-    onWorkoutsClick: () -> Unit,
-    onSleepClick: () -> Unit,
-    onCheckInClick: () -> Unit,
-    onStepsClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onStepsClick: () -> Unit
 ) {
+
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Refresh when returning from a tracker.
@@ -64,8 +60,7 @@ fun DashboardScreen(
     ) {
         item {
             DashboardHeader(
-                displayName = uiState.displayName,
-                onProfileClick = onProfileClick
+                displayName = uiState.displayName
             )
         }
 
@@ -132,24 +127,12 @@ fun DashboardScreen(
                 )
             }
         }
-
-        item {
-            ShortcutSection(
-                onMealsClick = onMealsClick,
-                onHydrationClick = onHydrationClick,
-                onWorkoutsClick = onWorkoutsClick,
-                onSleepClick = onSleepClick,
-                onCheckInClick = onCheckInClick,
-                onStepsClick = onStepsClick
-            )
-        }
     }
 }
 
 @Composable
 private fun DashboardHeader(
-    displayName: String,
-    onProfileClick: () -> Unit
+    displayName: String
 ) {
     Column(
         modifier = Modifier
@@ -189,19 +172,6 @@ private fun DashboardHeader(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onPrimary
         )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        OutlinedButton(
-            onClick = onProfileClick,
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Profile")
-        }
     }
 }
 
@@ -683,87 +653,6 @@ private fun EmptyStateIfNeeded(
                 modifier = Modifier.padding(16.dp)
             )
         }
-    }
-}
-
-
-@Composable
-private fun ShortcutSection(
-    onMealsClick: () -> Unit,
-    onHydrationClick: () -> Unit,
-    onWorkoutsClick: () -> Unit,
-    onSleepClick: () -> Unit,
-    onCheckInClick: () -> Unit,
-    onStepsClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
-
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        Row(
-            horizontalArrangement =
-                Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onMealsClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Meals")
-            }
-
-            Button(
-                onClick = onHydrationClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Hydration")
-            }
-        }
-
-        Row(
-            horizontalArrangement =
-                Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onWorkoutsClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Workouts")
-            }
-
-            Button(
-                onClick = onSleepClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Sleep")
-            }
-        }
-
-        Row(
-            horizontalArrangement =
-                Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onCheckInClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Check-in")
-            }
-
-            Button(
-                onClick = onStepsClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Steps")
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
     }
 }
 

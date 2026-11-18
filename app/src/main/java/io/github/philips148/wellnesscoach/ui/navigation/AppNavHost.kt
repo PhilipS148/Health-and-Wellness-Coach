@@ -316,6 +316,7 @@ fun AppNavHost(
                                 )
                             )
 
+
                         DashboardScreen(
                             uiState = dashboardViewModel.uiState,
                             onRefresh = dashboardViewModel::refresh,
@@ -328,24 +329,8 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.HYDRATION)
                             },
 
-                            onWorkoutsClick = {
-                                navController.navigate(AppRoutes.WORKOUTS)
-                            },
-
-                            onSleepClick = {
-                                navController.navigate(AppRoutes.SLEEP)
-                            },
-
-                            onCheckInClick = {
-                                navController.navigate(AppRoutes.CHECK_INS)
-                            },
-
                             onStepsClick = {
                                 navController.navigate(AppRoutes.STEPS)
-                            },
-
-                            onProfileClick = {
-                                navController.navigate(AppRoutes.ACCOUNT_SETTINGS)
                             }
                         )
                     }
