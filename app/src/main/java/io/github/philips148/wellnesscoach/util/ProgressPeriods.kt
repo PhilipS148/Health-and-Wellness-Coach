@@ -43,4 +43,13 @@ object ProgressPeriods {
             if (date == today) "Today" else date.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.US))
         }
     }
+
+    fun ratio(value: Double?, goal: Double): Double? {
+        if (value == null || goal <= 0.0) {
+            return null
+        } else {
+            return value / goal
+        }
+    }
+
 }
