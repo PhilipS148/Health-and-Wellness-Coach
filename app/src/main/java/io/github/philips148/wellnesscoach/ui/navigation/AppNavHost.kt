@@ -82,6 +82,10 @@ import io.github.philips148.wellnesscoach.ui.dashboard.DashboardViewModelFactory
 import androidx.compose.material3.Scaffold
 import androidx.navigation.compose.currentBackStackEntryAsState
 import io.github.philips148.wellnesscoach.ui.logs.LogsScreen
+import io.github.philips148.wellnesscoach.ui.progress.ProgressScreen
+import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModel
+import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModelFactory
+
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -363,7 +367,21 @@ fun AppNavHost(
                     }
 
                     composable(AppRoutes.PROGRESS) {
-                        NavigationPreview(title = "Progress")
+                        val progressViewModel: ProgressViewModel = viewModel(
+                            factory = ProgressViewModelFactory(summaryRepository)
+                        )
+
+                        LaunchedEffect(Unit) {
+                            progressViewModel.refresh()
+                        }
+
+                        ProgressScreen(
+                            uiState = progressViewModel.uiState,
+                            onModeChange = progressViewModel::onModeChange,
+                            onPrevious = progressViewModel::previous,
+                            onNext = progressViewModel::next,
+                            onRefresh = progressViewModel::refresh
+                        )
                     }
 
                     composable(AppRoutes.MEALS) {
