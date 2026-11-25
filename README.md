@@ -4,7 +4,7 @@ A capstone Android application for tracking everyday wellness habits, reviewing 
 
 Built for **CPSC 491/492** using **Kotlin**, **Jetpack Compose**, **Firebase Authentication**, and **Cloud Firestore**. The AI backend uses **TypeScript**, **Cloudflare Workers**, and **Cloudflare Workers AI**.
 
-> **Project status — November 22, 2026:** Core account, tracking, dashboard, logs, and progress functionality is integrated into `master`. The AI Coach backend (A1) has been built, deployed, and exercised with authenticated requests from a test client on the `feature/ai-coach` branch; the Android AI chat experience (A2) and reminders are still to be completed. Functional integration comes before the final UI/UX polish pass.
+> **Project status — November 25, 2026:** Core account, tracking, dashboard, logs, progress, and AI Coach backend (A1) functionality is integrated into `master`. The Android AI Coach interface (A2) has been implemented and tested on the `feature/ai-coach-ui` branch and is awaiting merge. Reminders, final integration testing, and UI/UX polish remain outstanding.
 
 ## Features and development status
 
@@ -17,8 +17,8 @@ Built for **CPSC 491/492** using **Kotlin**, **Jetpack Compose**, **Firebase Aut
 | Dashboard (D2) | Integrated | Overview of calories, hydration, steps, and sleep; intentionally a functional prototype |
 | Logs/navigation (D3) | Integrated | Central access to tracking and history workflows |
 | Progress (D4) | Merged into `master` | Daily/weekly summaries, charts, history, date navigation, refresh, and empty/error states |
-| AI Coach backend (A1) | Deployed; final app integration outstanding | Authenticated Firestore context and real AI-generated responses verified with test requests |
-| AI Coach Android UI (A2) | Not yet integrated | Chat interface and app-to-backend networking |
+| AI Coach backend (A1) | Merged and deployed | Authenticated Firestore context and AI-generated responses verified from the Android app |
+| AI Coach Android UI (A2) | Implemented and tested; awaiting merge | Chat interface, authenticated networking, input validation, loading, errors, retry, and account isolation |
 | Reminders | Pending | To be completed and tested with remaining functional requirements |
 | Final UI/UX polish | Planned | Consistency, usability, styling, and professional appearance after features are working |
 
@@ -158,6 +158,7 @@ Android repositories operate for the currently signed-in user and return failure
 - `WellnessRepository` and feature-specific repositories: manual wellness record operations.
 - `StepRepository`: saving and retrieving daily step totals.
 - `SummaryRepository`: daily and weekly aggregates for dashboard/progress features.
+- `CoachRepository`: sends authenticated wellness questions to the Cloudflare backend and returns AI-generated responses or request failures.
 
 Saving a profile must preserve unrelated existing fields, and its UID must match the authenticated account.
 
@@ -415,13 +416,66 @@ Manually checked:
 - Controlled local timeout returning the intended `504` response.
 - TypeScript compilation and successful Cloudflare deployment.
 
-**Still outstanding for complete end-to-end sign-off:** a request initiated **inside the signed-in Android app** (A2), broader account-isolation/security-rule tests, and ongoing reliability checks. Successful manual tests are not a substitute for exhaustive security or load testing.
+Authenticated requests initiated inside the signed-in Android app have now been verified during A2 testing.
 
-### A2 and remaining work
+**Still outstanding for complete end-to-end sign-off:** broader account-isolation/security-rule tests and ongoing reliability checks. Successful manual tests are not a substitute for exhaustive security or load testing.
 
-A2 will add Android networking and the actual AI chat screen. The app must obtain a Firebase ID token, send an authenticated `POST /coach/chat` request, display the returned reply, and handle loading, failures, and retry without exposing credentials. The current API is stateless: **there is no conversation memory or chat history yet**.
+## AI Coach Android interface (A2)
 
-Other planned work includes reminders, final cross-feature integration testing, and a dedicated UI/UX polish pass after the functional requirements are stable.
+The Android AI Coach connects the signed-in user to the deployed Cloudflare Worker through the existing AI Coach navigation destination.
+
+### Android implementation
+
+- `FirebaseAuthDataSource`: retrieves the signed-in user's Firebase ID token.
+- `CoachRepository`: sends authenticated HTTPS requests to the AI backend and handles responses, connection failures, and timeouts.
+- `CoachViewModel`: manages conversation messages, input validation, loading, errors, and retry.
+- `CoachViewModelFactory`: creates the ViewModel with its required repository.
+- `CoachScreen`: displays the conversation, question input, loading indicator, error messages, and retry button.
+- `AppContainer` and `AppNavHost`: provide the repository and connect the AI Coach to the existing application navigation.
+
+### Chat behavior
+
+- Questions must not be blank and cannot exceed 500 characters.
+- Duplicate submissions are prevented while a request is in progress.
+- Failed requests can be retried without duplicating the original user message.
+- Responses use the authenticated user's recent wellness records, selected tracking categories, and goals.
+- Other application screens remain accessible while the AI Coach is loading or unavailable.
+- Chat messages are stored temporarily in the ViewModel and are not saved to Firestore.
+- Chat state is cleared when the user logs out or switches accounts.
+- Each question is processed independently. Previous conversation messages are not sent to the AI backend.
+
+### A2 verification
+
+Manually checked:
+
+- Successful authenticated AI responses from the Android app.
+- Personalized feedback based on saved wellness records.
+- Respect for enabled and disabled tracking categories.
+- Account switching and conversation reset.
+- Handling of empty and whitespace-only questions.
+- Loading indicators and duplicate submission prevention.
+- Connection failure handling and successful retry after restoring connectivity.
+- Navigation to other application screens while the AI Coach is loading or unavailable.
+
+Automated tests in `CoachViewModelTest.kt` cover:
+
+- Empty, whitespace-only, and oversized questions.
+- Successful responses and conversation updates.
+- Loading state.
+- Duplicate submission prevention.
+- Failed requests and successful retry without duplicate messages.
+
+Run the AI Coach unit tests with:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests "*CoachViewModelTest"
+```
+
+All eight AI Coach unit tests and the complete Android unit test suite passed on November 25, 2026. These ViewModel tests use a fake repository and do not contact Firebase or Cloudflare.
+
+### Remaining work
+
+Reminders, final cross-feature integration testing, and a dedicated UI/UX polish pass remain outstanding. Short-term AI conversation memory is a possible future enhancement and is not part of the current A2 implementation.
 
 ## Working on the project
 
@@ -433,4 +487,4 @@ Other planned work includes reminders, final cross-feature integration testing, 
 
 ---
 
-*Documentation reflects the provided project README, reviewed Android progress integration, and the A1 backend source and tests available as of November 22, 2026. Update statuses as A2, reminders, and final integration testing are completed.*
+*Documentation updated November 25, 2026, to reflect A1 backend integration and A2 Android implementation and testing. Update statuses as remaining features are merged and final integration testing is completed.*

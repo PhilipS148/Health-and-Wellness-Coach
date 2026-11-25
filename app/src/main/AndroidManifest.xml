@@ -4,6 +4,8 @@
 
     <!-- Declare activity access so the Steps screen can request permission. -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- Allow the AI Coach to communicate with the Cloudflare backend. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"

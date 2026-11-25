@@ -86,6 +86,10 @@ import io.github.philips148.wellnesscoach.ui.progress.ProgressScreen
 import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModel
 import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModelFactory
 
+import io.github.philips148.wellnesscoach.data.coach.CoachRepository
+import io.github.philips148.wellnesscoach.ui.coach.CoachScreen
+import io.github.philips148.wellnesscoach.ui.coach.CoachViewModel
+import io.github.philips148.wellnesscoach.ui.coach.CoachViewModelFactory
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -96,6 +100,7 @@ fun AppNavHost(
     stepRepository: StepRepository,
     phoneStepDataSource: PhoneStepDataSource,
     summaryRepository: SummaryRepository,
+    coachRepository: CoachRepository,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -362,9 +367,23 @@ fun AppNavHost(
                         )
                     }
 
+
                     composable(AppRoutes.AI_COACH) {
-                        NavigationPreview(title = "AI Coach")
+
+                        // Create the AI Coach ViewModel using our shared repository.
+                        val coachViewModel: CoachViewModel = viewModel(
+                            factory = CoachViewModelFactory(coachRepository)
+                        )
+
+                        // Display the chat screen and connect its buttons to the ViewModel.
+                        CoachScreen(
+                            uiState = coachViewModel.uiState,
+                            onQuestionChange = coachViewModel::onQuestionChange,
+                            onSend = coachViewModel::sendQuestion,
+                            onRetry = coachViewModel::retry
+                        )
                     }
+
 
                     composable(AppRoutes.PROGRESS) {
                         val progressViewModel: ProgressViewModel = viewModel(

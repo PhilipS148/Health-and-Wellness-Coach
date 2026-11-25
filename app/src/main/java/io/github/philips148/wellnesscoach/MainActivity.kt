@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
                         stepRepository = appContainer.stepRepository,
                         phoneStepDataSource = appContainer.phoneStepDataSource,
                         summaryRepository = appContainer.summaryRepository,
+                        coachRepository = appContainer.coachRepository,
                         onSignOutClick = appViewModel::signOut,
                         modifier = Modifier.padding(innerPadding)
                     )

@@ -15,6 +15,23 @@ class FirebaseAuthDataSource(
         return auth.currentUser?.uid
     }
 
+    // Get the signed-in user's Firebase token for protected backend requests.
+    suspend fun getCurrentUserIdToken(): String {
+        val user = auth.currentUser
+            ?: throw IllegalStateException("Please sign in to use the AI Coach.")
+
+        // Firebase automatically refreshes the token when necessary.
+        val token = user.getIdToken(false).await().token
+            ?: throw IllegalStateException("Unable to authenticate AI Coach request.")
+
+        // Ensure the user didn't switch accounts while the token was loading.
+        if (auth.currentUser?.uid != user.uid) {
+            throw IllegalStateException("Your account changed. Please try again.")
+        }
+
+        return token
+    }
+
     fun getCurrentUserEmail(): String? {
         return auth.currentUser?.email
     }
