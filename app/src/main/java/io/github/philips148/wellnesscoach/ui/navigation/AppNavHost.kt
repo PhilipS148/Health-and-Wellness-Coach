@@ -1,6 +1,10 @@
 package io.github.philips148.wellnesscoach.ui.navigation
 
 import android.net.Uri
+import io.github.philips148.wellnesscoach.data.reminders.ReminderPreferencesRepository
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesScreen
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesViewModel
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -102,6 +106,7 @@ fun AppNavHost(
     summaryRepository: SummaryRepository,
     coachRepository: CoachRepository,
     onSignOutClick: () -> Unit,
+    reminderPreferencesRepository: ReminderPreferencesRepository,
     modifier: Modifier = Modifier
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel(
@@ -531,6 +536,14 @@ fun AppNavHost(
                         )
                     }
 
+                    composable(AppRoutes.REMINDERS) {
+                        val reminders: ReminderPreferencesViewModel = viewModel(
+                            factory = ReminderPreferencesViewModelFactory(
+                                navigationUserId, reminderPreferencesRepository))
+                        ReminderPreferencesScreen(
+                            reminders.uiState, reminders::change, reminders::save, reminders::load,
+                            onBack = { navController.popBackStack() })
+                    }
                     composable(AppRoutes.ACCOUNT_SETTINGS) {
                         NavigationPreview(
                             title = "Account settings",
@@ -550,6 +563,9 @@ fun AppNavHost(
                                 }
                             ) {
                                 Text("Goals & Tracking")
+                            }
+                            Button(onClick = { navController.navigate(AppRoutes.REMINDERS) }) {
+                                Text("Reminders")
                             }
 
                             Button(

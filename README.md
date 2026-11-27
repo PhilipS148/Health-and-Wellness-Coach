@@ -487,4 +487,12 @@ Reminders, final cross-feature integration testing, and a dedicated UI/UX polish
 
 ---
 
-*Documentation updated November 25, 2026, to reflect A1 backend integration and A2 Android implementation and testing. Update statuses as remaining features are merged and final integration testing is completed.*
+
+## Reminder preferences
+
+Open Profile > Reminders to enable hydration, daily check-in, or workout reminders
+and choose times. Each account saves its choices in `users/{uid}.reminderPreferences`:
+`hydration`, `checkIn`, and `workout` each contain `enabled` (Boolean), `hour` (0–23),
+and `minute` (0–59). Missing settings default to disabled at 10:00, 20:00, and 17:00.
+Times follow the phone's local time zone, including daylight saving changes.
+Notification delivery is connected separately.
