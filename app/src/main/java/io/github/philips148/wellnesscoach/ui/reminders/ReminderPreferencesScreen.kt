@@ -1,6 +1,7 @@
 package io.github.philips148.wellnesscoach.ui.reminders
 
 import android.app.TimePickerDialog
+import io.github.philips148.wellnesscoach.reminders.ReminderPermissionControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -60,6 +61,7 @@ fun ReminderPreferencesScreen(
                     Text(if (state.saving) "Saving…" else "Save Reminders")
                 }
                 Text("Your enabled reminders use the times you choose.")
+                ReminderPermissionControls()
                 if (state.saving) Text("Saving your choices. If offline, reconnect to finish.")
                 if (state.saved) Text("Your reminders are saved.", color = MaterialTheme.colorScheme.primary)
             }
