@@ -1,6 +1,10 @@
 package io.github.philips148.wellnesscoach.ui.navigation
 
 import android.net.Uri
+import io.github.philips148.wellnesscoach.data.reminders.ReminderPreferencesRepository
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesScreen
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesViewModel
+import io.github.philips148.wellnesscoach.ui.reminders.ReminderPreferencesViewModelFactory
 import io.github.philips148.wellnesscoach.ui.auth.RegistrationScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -86,6 +90,10 @@ import io.github.philips148.wellnesscoach.ui.progress.ProgressScreen
 import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModel
 import io.github.philips148.wellnesscoach.ui.progress.ProgressViewModelFactory
 
+import io.github.philips148.wellnesscoach.data.coach.CoachRepository
+import io.github.philips148.wellnesscoach.ui.coach.CoachScreen
+import io.github.philips148.wellnesscoach.ui.coach.CoachViewModel
+import io.github.philips148.wellnesscoach.ui.coach.CoachViewModelFactory
 @Composable
 fun AppNavHost(
     userId: String?,
@@ -96,7 +104,9 @@ fun AppNavHost(
     stepRepository: StepRepository,
     phoneStepDataSource: PhoneStepDataSource,
     summaryRepository: SummaryRepository,
+    coachRepository: CoachRepository,
     onSignOutClick: () -> Unit,
+    reminderPreferencesRepository: ReminderPreferencesRepository,
     modifier: Modifier = Modifier,
     reminderRequest: Pair<String, String>? = null,
     onReminderConsumed: () -> Unit = {}
@@ -155,11 +165,9 @@ fun AppNavHost(
                     route in setOf(AppRoutes.HYDRATION, AppRoutes.CHECK_INS, AppRoutes.WORKOUTS)) {
                     navController.navigate(route) { launchSingleTop = true }
                 }
-                // Drop requests for another account or while signed out.
                 onReminderConsumed()
             }
         }
-
         val startDestination = remember {
             when {
                 navigationUserId == null ->
@@ -375,9 +383,23 @@ fun AppNavHost(
                         )
                     }
 
+
                     composable(AppRoutes.AI_COACH) {
-                        NavigationPreview(title = "AI Coach")
+
+                        // Create the AI Coach ViewModel using our shared repository.
+                        val coachViewModel: CoachViewModel = viewModel(
+                            factory = CoachViewModelFactory(coachRepository)
+                        )
+
+                        // Display the chat screen and connect its buttons to the ViewModel.
+                        CoachScreen(
+                            uiState = coachViewModel.uiState,
+                            onQuestionChange = coachViewModel::onQuestionChange,
+                            onSend = coachViewModel::sendQuestion,
+                            onRetry = coachViewModel::retry
+                        )
                     }
+
 
                     composable(AppRoutes.PROGRESS) {
                         val progressViewModel: ProgressViewModel = viewModel(
@@ -525,8 +547,12 @@ fun AppNavHost(
                         )
                     }
 
-                    composable("notification_test") {
-                        io.github.philips148.wellnesscoach.reminders.ReminderTestScreen(
+                    composable(AppRoutes.REMINDERS) {
+                        val reminders: ReminderPreferencesViewModel = viewModel(
+                            factory = ReminderPreferencesViewModelFactory(
+                                navigationUserId, reminderPreferencesRepository))
+                        ReminderPreferencesScreen(
+                            reminders.uiState, reminders::change, reminders::save, reminders::load,
                             onBack = { navController.popBackStack() })
                     }
                     composable(AppRoutes.ACCOUNT_SETTINGS) {
@@ -549,11 +575,8 @@ fun AppNavHost(
                             ) {
                                 Text("Goals & Tracking")
                             }
-                            if (android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE and
-                                androidx.compose.ui.platform.LocalContext.current.applicationInfo.flags != 0) {
-                                Button(onClick = { navController.navigate("notification_test") }) {
-                                    Text("Test notifications")
-                                }
+                            Button(onClick = { navController.navigate(AppRoutes.REMINDERS) }) {
+                                Text("Reminders")
                             }
 
                             Button(

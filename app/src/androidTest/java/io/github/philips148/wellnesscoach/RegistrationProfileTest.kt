@@ -144,6 +144,8 @@ class RegistrationProfileTest {
                         stepRepository = stepRepository,
                         phoneStepDataSource = phoneStepDataSource,
                         summaryRepository = summaryRepository,
+                        coachRepository = io.github.philips148.wellnesscoach.data.coach.DefaultCoachRepository(authDataSource),
+                        reminderPreferencesRepository = io.github.philips148.wellnesscoach.data.reminders.FirestoreReminderPreferencesRepository(authRepository),
                         onSignOutClick = authRepository::signOut
                     )
                 }

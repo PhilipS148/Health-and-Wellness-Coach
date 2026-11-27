@@ -23,18 +23,31 @@ import io.github.philips148.wellnesscoach.data.steps.PhoneStepDataSource
 import io.github.philips148.wellnesscoach.data.summary.DefaultSummaryRepository
 import io.github.philips148.wellnesscoach.data.summary.SummaryRepository
 
+import io.github.philips148.wellnesscoach.data.coach.DefaultCoachRepository
+import io.github.philips148.wellnesscoach.data.coach.CoachRepository
 class AppContainer(context: Context) {
 
     // Create the object that communicates with Firebase Authentication.
     private val authDataSource = FirebaseAuthDataSource()
     private val userDataSource = FirestoreUserDataSource()
-
     private val wellnessDataSource = FirestoreWellnessDataSource()
     // Give that data source to our repository implementation.
     val authRepository: AuthRepository = DefaultAuthRepository(
         authDataSource = authDataSource,
         userDataSource = userDataSource
     )
+
+    // Provides authenticated access to the Cloudflare AI Coach backend.
+    val coachRepository: CoachRepository = DefaultCoachRepository(
+        authDataSource = authDataSource
+    )
+
+    val reminderPreferencesRepository =
+        io.github.philips148.wellnesscoach.reminders.ScheduledReminderRepository(
+            io.github.philips148.wellnesscoach.data.reminders.FirestoreReminderPreferencesRepository(authRepository),
+            io.github.philips148.wellnesscoach.reminders.ReminderDelivery(context)::syncSavedPreferences
+        )
+
     // Shared repository for profile information, goals, and categories.
     val userRepository = DefaultUserRepository(
         authDataSource = authDataSource,

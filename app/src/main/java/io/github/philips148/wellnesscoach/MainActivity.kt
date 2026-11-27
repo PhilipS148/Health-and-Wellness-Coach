@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         io.github.philips148.wellnesscoach.reminders.ReminderDelivery(this).restore()
+        (application as WellnessCoachApplication).refreshReminderPreferences()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +77,8 @@ class MainActivity : ComponentActivity() {
                         stepRepository = appContainer.stepRepository,
                         phoneStepDataSource = appContainer.phoneStepDataSource,
                         summaryRepository = appContainer.summaryRepository,
+                        reminderPreferencesRepository = appContainer.reminderPreferencesRepository,
+                        coachRepository = appContainer.coachRepository,
                         onSignOutClick = appViewModel::signOut,
                         reminderRequest = reminderRequest,
                         onReminderConsumed = { reminderRequest = null },
