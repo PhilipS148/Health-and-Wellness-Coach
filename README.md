@@ -256,3 +256,11 @@ are no longer selected.
 Users can review history by date range, edit entries, and confirm deletions.
 Records use the shared `WellnessRepository` for the signed-in user.
 Build and unit tests are checked; live Firebase testing remains pending.
+
+
+## Scheduled reminders
+
+Notification delivery supports local daily times, rescheduling, cancellation,
+and opening the related tracking screen. Debug builds include Test notifications
+under Account Settings. R1 saved-settings integration and physical-phone checks
+are still pending.

@@ -14,5 +14,9 @@ class WellnessCoachApplication : Application() {
         // Create shared objects and provide the application's context.
         // This avoids keeping a reference to an individual screen.
         appContainer = AppContainer(context = this)
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            io.github.philips148.wellnesscoach.reminders.ReminderDelivery(this)
+                .onAccountChanged(auth.currentUser?.uid)
+        }
     }
 }

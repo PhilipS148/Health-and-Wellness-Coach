@@ -97,7 +97,9 @@ fun AppNavHost(
     phoneStepDataSource: PhoneStepDataSource,
     summaryRepository: SummaryRepository,
     onSignOutClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reminderRequest: Pair<String, String>? = null,
+    onReminderConsumed: () -> Unit = {}
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel(
         factory = RegistrationViewModelFactory(authRepository)
@@ -146,6 +148,17 @@ fun AppNavHost(
     // Recreate navigation when the account state changes.
     key(navigationUserId) {
         val navController = rememberNavController()
+
+        LaunchedEffect(reminderRequest, navigationUserId) {
+            reminderRequest?.let { (owner, route) ->
+                if (navigationUserId == owner && pendingSetupUserId != owner &&
+                    route in setOf(AppRoutes.HYDRATION, AppRoutes.CHECK_INS, AppRoutes.WORKOUTS)) {
+                    navController.navigate(route) { launchSingleTop = true }
+                }
+                // Drop requests for another account or while signed out.
+                onReminderConsumed()
+            }
+        }
 
         val startDestination = remember {
             when {
@@ -512,6 +525,10 @@ fun AppNavHost(
                         )
                     }
 
+                    composable("notification_test") {
+                        io.github.philips148.wellnesscoach.reminders.ReminderTestScreen(
+                            onBack = { navController.popBackStack() })
+                    }
                     composable(AppRoutes.ACCOUNT_SETTINGS) {
                         NavigationPreview(
                             title = "Account settings",
@@ -531,6 +548,12 @@ fun AppNavHost(
                                 }
                             ) {
                                 Text("Goals & Tracking")
+                            }
+                            if (android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE and
+                                androidx.compose.ui.platform.LocalContext.current.applicationInfo.flags != 0) {
+                                Button(onClick = { navController.navigate("notification_test") }) {
+                                    Text("Test notifications")
+                                }
                             }
 
                             Button(
