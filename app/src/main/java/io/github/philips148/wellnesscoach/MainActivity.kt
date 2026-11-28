@@ -1,6 +1,9 @@
 package io.github.philips148.wellnesscoach
 
 import android.os.Bundle
+import android.content.Intent
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,9 +21,32 @@ import io.github.philips148.wellnesscoach.ui.theme.HealthAndWellnessCoachTheme
 import io.github.philips148.wellnesscoach.ui.navigation.AppNavHost
 
 class MainActivity : ComponentActivity() {
+    private var reminderRequest by mutableStateOf<Pair<String, String>?>(null)
+
+    private fun readReminderIntent(intent: Intent?) {
+        val owner = intent?.getStringExtra("reminder_owner")
+        val route = intent?.getStringExtra("reminder_route")
+        reminderRequest = if (owner != null && route in setOf("hydration", "check_ins", "workouts")) owner to route!! else null
+        intent?.removeExtra("reminder_owner")
+        intent?.removeExtra("reminder_route")
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readReminderIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        io.github.philips148.wellnesscoach.reminders.ReminderDelivery(this).restore()
+        (application as WellnessCoachApplication).refreshReminderPreferences()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        readReminderIntent(intent)
 
         // Get the shared dependencies created when the app starts.
         val appContainer =
@@ -54,6 +80,8 @@ class MainActivity : ComponentActivity() {
                         reminderPreferencesRepository = appContainer.reminderPreferencesRepository,
                         coachRepository = appContainer.coachRepository,
                         onSignOutClick = appViewModel::signOut,
+                        reminderRequest = reminderRequest,
+                        onReminderConsumed = { reminderRequest = null },
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

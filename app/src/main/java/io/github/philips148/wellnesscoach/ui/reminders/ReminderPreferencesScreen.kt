@@ -1,6 +1,7 @@
 package io.github.philips148.wellnesscoach.ui.reminders
 
 import android.app.TimePickerDialog
+import io.github.philips148.wellnesscoach.reminders.ReminderPermissionControls
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -61,6 +62,9 @@ fun ReminderPreferencesScreen(
                     Text(if (state.saving) "Saving…" else "Save Reminders")
                 }
                 Text("Your enabled reminders use the times you choose.")
+                // Display the controls for Android notification permissions.
+                ReminderPermissionControls()
+
                 // Let the user know that their changes are still waiting to sync.
                 if (state.saving) {
                     Text("Saving your choices. You can leave this screen, but changes may remain pending until you reconnect.")

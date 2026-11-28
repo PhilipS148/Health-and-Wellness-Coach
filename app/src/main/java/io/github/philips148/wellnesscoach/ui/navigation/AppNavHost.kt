@@ -107,7 +107,9 @@ fun AppNavHost(
     coachRepository: CoachRepository,
     onSignOutClick: () -> Unit,
     reminderPreferencesRepository: ReminderPreferencesRepository,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reminderRequest: Pair<String, String>? = null,
+    onReminderConsumed: () -> Unit = {}
 ) {
     val registrationViewModel: RegistrationViewModel = viewModel(
         factory = RegistrationViewModelFactory(authRepository)
@@ -157,6 +159,15 @@ fun AppNavHost(
     key(navigationUserId) {
         val navController = rememberNavController()
 
+        LaunchedEffect(reminderRequest, navigationUserId) {
+            reminderRequest?.let { (owner, route) ->
+                if (navigationUserId == owner && pendingSetupUserId != owner &&
+                    route in setOf(AppRoutes.HYDRATION, AppRoutes.CHECK_INS, AppRoutes.WORKOUTS)) {
+                    navController.navigate(route) { launchSingleTop = true }
+                }
+                onReminderConsumed()
+            }
+        }
         val startDestination = remember {
             when {
                 navigationUserId == null ->

@@ -25,6 +25,10 @@ import io.github.philips148.wellnesscoach.data.summary.SummaryRepository
 
 import io.github.philips148.wellnesscoach.data.coach.DefaultCoachRepository
 import io.github.philips148.wellnesscoach.data.coach.CoachRepository
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 class AppContainer(context: Context) {
 
     // Create the object that communicates with Firebase Authentication.
@@ -42,8 +46,21 @@ class AppContainer(context: Context) {
         authDataSource = authDataSource
     )
 
+
+    // Keep reminder saves running even when the user leaves the screen.
+    private val reminderSaveScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    // Connect saved Firebase preferences to Android notification scheduling.
     val reminderPreferencesRepository =
-        io.github.philips148.wellnesscoach.data.reminders.FirestoreReminderPreferencesRepository(authRepository)
+        io.github.philips148.wellnesscoach.reminders.ScheduledReminderRepository(
+            savedSettings =
+                io.github.philips148.wellnesscoach.data.reminders.FirestoreReminderPreferencesRepository(authRepository),
+            saveScope = reminderSaveScope,
+            sync =
+                io.github.philips148.wellnesscoach.reminders.ReminderDelivery(context)::syncSavedPreferences
+        )
+
 
     // Shared repository for profile information, goals, and categories.
     val userRepository = DefaultUserRepository(
