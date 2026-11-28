@@ -1,7 +1,6 @@
 package io.github.philips148.wellnesscoach.ui.reminders
 
 import android.app.TimePickerDialog
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +27,6 @@ fun ReminderPreferencesScreen(
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
-    BackHandler(enabled = state.saving) { }
     Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())) {
         Column(Modifier.fillMaxWidth().background(Color(0xFF323E71)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -37,7 +35,10 @@ fun ReminderPreferencesScreen(
             Text("Choose what works for your day.", color = Color.White)
         }
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextButton(onClick = onBack, enabled = !state.saving) { Text("Back to Profile") }
+            // Allow the user to leave even if Firebase is waiting for a connection.
+            TextButton(onClick = onBack) {
+                Text("Back to Profile")
+            }
             if (state.loading) {
                 CircularProgressIndicator()
                 Text("Loading reminders…")
@@ -60,7 +61,10 @@ fun ReminderPreferencesScreen(
                     Text(if (state.saving) "Saving…" else "Save Reminders")
                 }
                 Text("Your enabled reminders use the times you choose.")
-                if (state.saving) Text("Saving your choices. If offline, reconnect to finish.")
+                // Let the user know that their changes are still waiting to sync.
+                if (state.saving) {
+                    Text("Saving your choices. You can leave this screen, but changes may remain pending until you reconnect.")
+                }
                 if (state.saved) Text("Your reminders are saved.", color = MaterialTheme.colorScheme.primary)
             }
             state.error?.let {
