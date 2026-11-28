@@ -21,5 +21,6 @@ object AppRoutes {
     const val STEPS = "steps"
     const val LOGS = "logs"
     const val AI_COACH = "ai_coach"
+    const val REMINDERS = "reminders"
     const val PROGRESS = "progress"
 }

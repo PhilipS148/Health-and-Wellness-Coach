@@ -42,6 +42,9 @@ class AppContainer(context: Context) {
         authDataSource = authDataSource
     )
 
+    val reminderPreferencesRepository =
+        io.github.philips148.wellnesscoach.data.reminders.FirestoreReminderPreferencesRepository(authRepository)
+
     // Shared repository for profile information, goals, and categories.
     val userRepository = DefaultUserRepository(
         authDataSource = authDataSource,
