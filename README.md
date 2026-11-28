@@ -4,7 +4,7 @@ A capstone Android application for tracking everyday wellness habits, reviewing 
 
 Built for **CPSC 491/492** using **Kotlin**, **Jetpack Compose**, **Firebase Authentication**, and **Cloud Firestore**. The AI backend uses **TypeScript**, **Cloudflare Workers**, and **Cloudflare Workers AI**.
 
-> **Project status — November 25, 2026:** Core account, tracking, dashboard, logs, progress, and AI Coach backend (A1) functionality is integrated into `master`. The Android AI Coach interface (A2) has been implemented and tested on the `feature/ai-coach-ui` branch and is awaiting merge. Reminders, final integration testing, and UI/UX polish remain outstanding.
+> **Project status — November 27, 2026:** Core account, tracking, dashboard, logs, progress, AI Coach (A1/A2), and reminder preferences (R1) are integrated into `master`. Scheduled notifications (R2) have been implemented and tested and are awaiting merge. Final integration testing, physical-device verification, and UI/UX polish remain outstanding.
 
 ## Features and development status
 
@@ -18,8 +18,9 @@ Built for **CPSC 491/492** using **Kotlin**, **Jetpack Compose**, **Firebase Aut
 | Logs/navigation (D3) | Integrated | Central access to tracking and history workflows |
 | Progress (D4) | Merged into `master` | Daily/weekly summaries, charts, history, date navigation, refresh, and empty/error states |
 | AI Coach backend (A1) | Merged and deployed | Authenticated Firestore context and AI-generated responses verified from the Android app |
-| AI Coach Android UI (A2) | Implemented and tested; awaiting merge | Chat interface, authenticated networking, input validation, loading, errors, retry, and account isolation |
-| Reminders | Pending | To be completed and tested with remaining functional requirements |
+| AI Coach Android UI (A2) | Merged into `master` | Chat interface, authenticated networking, input validation, loading, errors, retry, and account isolation |
+| Reminder preferences (R1) | Merged into `master` | Account-specific reminder preferences, local time selection, and Firestore persistence |
+| Scheduled notifications (R2) | Implemented and tested; awaiting merge | Local notifications, permissions, rescheduling, cancellation, account isolation, and restart recovery |
 | Final UI/UX polish | Planned | Consistency, usability, styling, and professional appearance after features are working |
 
 *“Integrated” means the feature is in the Android codebase; it does not imply that every edge case or device configuration has been tested. Some older feature-specific acceptance tests still need final end-to-end verification.*
@@ -475,7 +476,7 @@ All eight AI Coach unit tests and the complete Android unit test suite passed on
 
 ### Remaining work
 
-Reminders, final cross-feature integration testing, and a dedicated UI/UX polish pass remain outstanding. Short-term AI conversation memory is a possible future enhancement and is not part of the current A2 implementation.
+Final cross-feature integration testing, physical-device verification, and a dedicated UI/UX polish pass remain outstanding. Short-term AI conversation memory is a possible future enhancement and is not part of the current A2 implementation.
 
 ## Working on the project
 
@@ -498,9 +499,24 @@ Times follow the phone's local time zone, including daylight saving changes.
 Enabled reminders use Android notifications. Allow notifications and Alarms & reminders access when prompted.
 
 
+
 ## Scheduled notifications
 
 Reminders follow the phone's local time and open the related tracking screen.
 Changing or disabling a reminder replaces or cancels its schedule. Schedules
 reload after reopening or restarting the phone and are cleared when accounts change.
+
+Reminder preferences are stored in Firestore, while notification schedules
+are managed locally by Android. Previously scheduled notifications can be
+delivered without an internet connection.
+
+Users can leave the reminders screen while preferences are saving.
+Pending saves continue while the application process remains active,
+and local notification schedules update after Firebase confirms the save.
+
+The application successfully builds and all unit tests pass. Notification
+delivery, navigation, rescheduling, cancellation, account isolation,
+offline synchronization, and device restart behavior were verified
+using the Android emulator.
+
 Physical-phone delivery checks are still pending.

@@ -2,6 +2,8 @@ package io.github.philips148.wellnesscoach.reminders
 
 import io.github.philips148.wellnesscoach.data.reminders.ReminderPreferences
 import io.github.philips148.wellnesscoach.data.reminders.ReminderPreferencesRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 
 fun ReminderPreferences.deliverySchedules(): List<ReminderSchedule> = listOf(
     ReminderSchedule(ReminderKind.HYDRATION, hydration.enabled, hydration.hour, hydration.minute),
@@ -11,6 +13,7 @@ fun ReminderPreferences.deliverySchedules(): List<ReminderSchedule> = listOf(
 
 class ScheduledReminderRepository(
     private val savedSettings: ReminderPreferencesRepository,
+    private val saveScope: CoroutineScope,
     private val sync: (String, ReminderPreferences) -> Unit
 ) : ReminderPreferencesRepository {
     private var revision = 0
@@ -25,13 +28,27 @@ class ScheduledReminderRepository(
         }
     }
 
-    override suspend fun save(userId: String, preferences: ReminderPreferences): Result<Unit> {
-        val startedAt = ++revision
-        pendingSaves++
-        return try {
-            savedSettings.save(userId, preferences).onSuccess {
-                if (startedAt == revision) sync(userId, preferences)
+    override suspend fun save(
+        userId: String,
+        preferences: ReminderPreferences
+    ): Result<Unit> {
+
+        // Keep saving even if the user leaves the Reminders screen.
+        return saveScope.async {
+            val startedAt = ++revision
+            pendingSaves++
+
+            try {
+                savedSettings.save(userId, preferences).onSuccess {
+                    // Only update notifications using the latest successful save.
+                    if (startedAt == revision) {
+                        sync(userId, preferences)
+                    }
+                }
+            } finally {
+                // Mark this save operation as finished.
+                pendingSaves--
             }
-        } finally { pendingSaves-- }
+        }.await()
     }
 }
